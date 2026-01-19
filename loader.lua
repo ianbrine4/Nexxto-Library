@@ -1,120 +1,127 @@
 local Library = {}
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
-function Library.new(title, logoId)
+function Library:CreateWindow(hubName, logoId)
     local UI = { CurrentTab = nil }
     
-    -- ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "ModernLib"
-    ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-    ScreenGui.ResetOnSpawn = false
+    ScreenGui.Name = "Nexxto_UI"
+    ScreenGui.Parent = game:GetService("CoreGui") or game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- Main Toggle Button (Logo)
-    local LogoToggle = Instance.new("ImageButton")
-    LogoToggle.Size = UDim2.new(0, 50, 0, 50)
-    LogoToggle.Position = UDim2.new(0, 20, 0, 20)
-    LogoToggle.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    LogoToggle.Image = "rbxassetid://" .. (logoId or "0")
-    LogoToggle.Parent = ScreenGui
-    
-    local LogoCorner = Instance.new("UICorner")
-    LogoCorner.CornerRadius = UDim.new(0, 12)
-    LogoCorner.Parent = LogoToggle
+    -- [DRAGGING SYSTEM]
+    local function makeDraggable(frame)
+        local dragging, dragInput, dragStart, startPos
+        frame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true dragStart = input.Position startPos = frame.Position
+                input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+            end
+        end)
+        frame.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta = input.Position - dragStart
+                frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+    end
 
-    -- Main Frame
+    -- [LOGO TOGGLE]
+    local Logo = Instance.new("ImageButton")
+    Logo.Size = UDim2.new(0, 48, 0, 48)
+    Logo.Position = UDim2.new(0, 25, 0, 25)
+    Logo.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    Logo.Image = "rbxassetid://" .. (logoId or 0)
+    Logo.Parent = ScreenGui
+    Instance.new("UICorner", Logo).CornerRadius = UDim.new(0, 10)
+
+    -- [MAIN FRAME]
     local Main = Instance.new("Frame")
     Main.Size = UDim2.new(0, 550, 0, 350)
     Main.Position = UDim2.new(0.5, 0, 0.5, 0)
     Main.AnchorPoint = Vector2.new(0.5, 0.5)
-    Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Darker Black
-    Main.BorderSizePixel = 0
-    Main.Visible = true
+    Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
     Main.Parent = ScreenGui
+    Instance.new("UICorner", Main)
+    makeDraggable(Main)
 
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
+    Logo.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-    -- Toggle Visibility Logic
-    LogoToggle.MouseButton1Click:Connect(function()
-        Main.Visible = not Main.Visible
-    end)
-
-    -- Sidebar Area
+    -- Sidebar & Container Setup
     local Sidebar = Instance.new("Frame")
     Sidebar.Size = UDim2.new(0, 150, 1, -20)
     Sidebar.Position = UDim2.new(0, 10, 0, 10)
     Sidebar.BackgroundTransparency = 1
     Sidebar.Parent = Main
+    Instance.new("UIListLayout", Sidebar).Padding = UDim.new(0, 5)
 
-    local TabList = Instance.new("UIListLayout")
-    TabList.Padding = UDim.new(0, 5)
-    TabList.Parent = Sidebar
-
-    -- Container for Tab Contents
     local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, -170, 1, -20)
-    Container.Position = UDim2.new(0, 160, 0, 10)
+    Container.Size = UDim2.new(1, -175, 1, -20)
+    Container.Position = UDim2.new(0, 165, 0, 10)
     Container.BackgroundTransparency = 1
     Container.Parent = Main
 
-    function UI:CreateTab(name)
+    -- [TAB API]
+    function UI:CreateTab(tabName)
         local TabBtn = Instance.new("TextButton")
-        TabBtn.Size = UDim2.new(1, 0, 0, 40)
-        TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        TabBtn.Text = name
-        TabBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-        TabBtn.Font = Enum.Font.GothamMedium
-        TabBtn.TextSize = 14
+        TabBtn.Size = UDim2.new(1, 0, 0, 38)
+        TabBtn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+        TabBtn.Text = "      " .. tabName
+        TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+        TabBtn.Font = Enum.Font.GothamSemibold
         TabBtn.Parent = Sidebar
-        
-        Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
+        Instance.new("UICorner", TabBtn)
 
-        -- The Line Indicator (Left Side)
         local Indicator = Instance.new("Frame")
-        Indicator.Size = UDim2.new(0, 4, 0.6, 0)
-        Indicator.Position = UDim2.new(0, 0, 0.2, 0)
-        Indicator.BackgroundColor3 = Color3.fromRGB(0, 170, 255) -- Modern Blue
-        Indicator.BorderSizePixel = 0
+        Indicator.Size = UDim2.new(0, 3, 0.5, 0)
+        Indicator.Position = UDim2.new(0, 2, 0.25, 0)
+        Indicator.BackgroundColor3 = Color3.fromRGB(0, 160, 255)
         Indicator.Visible = false
+        Indicator.Name = "Line"
         Indicator.Parent = TabBtn
 
-        local TabPage = Instance.new("ScrollingFrame")
-        TabPage.Size = UDim2.new(1, 0, 1, 0)
-        TabPage.BackgroundTransparency = 1
-        TabPage.Visible = false
-        TabPage.ScrollBarThickness = 0
-        TabPage.Parent = Container
-        Instance.new("UIListLayout", TabPage).Padding = UDim.new(0, 10)
+        local Page = Instance.new("ScrollingFrame")
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.Visible = false
+        Page.BackgroundTransparency = 1
+        Page.ScrollBarThickness = 2
+        Page.Parent = Container
+        Instance.new("UIListLayout", Page).Padding = UDim.new(0, 8)
 
         TabBtn.MouseButton1Click:Connect(function()
-            for _, v in pairs(Container:GetChildren()) do v.Visible = false end
-            for _, v in pairs(Sidebar:GetChildren()) do 
-                if v:IsA("TextButton") then 
-                    v.Indicator.Visible = false 
-                    TweenService:Create(v, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(25, 25, 25)}):Play()
-                end 
+            for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
+            for _, v in pairs(Sidebar:GetChildren()) do
+                if v:IsA("TextButton") then
+                    v.Line.Visible = false
+                    v.TextColor3 = Color3.fromRGB(150, 150, 150)
+                end
             end
-            
-            TabPage.Visible = true
+            Page.Visible = true
             Indicator.Visible = true
-            TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(35, 35, 35)}):Play()
+            TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
         end)
 
-        local TabItems = {}
-        function TabItems:AddButton(txt, callback)
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1, 0, 0, 40)
-            b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            b.Text = txt
-            b.TextColor3 = Color3.fromRGB(255, 255, 255)
-            b.Parent = TabPage
-            Instance.new("UICorner", b)
-            b.MouseButton1Click:Connect(callback)
+        -- [ELEMENT API]
+        local Elements = {}
+        function Elements:AddButton(text, callback)
+            local Btn = Instance.new("TextButton")
+            Btn.Size = UDim2.new(1, -10, 0, 40)
+            Btn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
+            Btn.Text = text
+            Btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Btn.Font = Enum.Font.Gotham
+            Btn.Parent = Page
+            Instance.new("UICorner", Btn)
+            Btn.MouseButton1Click:Connect(callback)
+            return Btn
         end
-
-        return TabItems
+        return Elements
     end
-
     return UI
 end
 
