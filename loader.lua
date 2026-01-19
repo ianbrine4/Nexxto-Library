@@ -1,5 +1,7 @@
-local Library = {ToggleKey = Enum.KeyCode.RightShift}
-local UIS, TS, CoreGui = game:GetService("UserInputService"), game:GetService("TweenService"), game:GetService("CoreGui")
+local Library = {}
+local UIS = game:GetService("UserInputService")
+local TS = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
 
 local function makeDraggable(obj, dragPart)
     local dragging, dragInput, dragStart, startPos
@@ -18,99 +20,81 @@ local function makeDraggable(obj, dragPart)
     UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
 end
 
-function Library:Notify(cfg)
-    local n = Instance.new("Frame")
-    n.Size = UDim2.new(0, 250, 0, 60)
-    n.Position = UDim2.new(1, 10, 1, -70)
-    n.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    n.Parent = CoreGui:FindFirstChild("NexxtoUI") or CoreGui
-    Instance.new("UICorner", n)
-    Instance.new("UIStroke", n).Color = Color3.fromRGB(30, 30, 30)
-    
-    local t = Instance.new("TextLabel")
-    t.Text = cfg.Title or "Notification"
-    t.Size = UDim2.new(1, -10, 0, 25)
-    t.Position = UDim2.new(0, 10, 0, 5)
-    t.TextColor3 = Color3.fromRGB(255, 255, 255)
-    t.Font = Enum.Font.GothamBold
-    t.BackgroundTransparency = 1
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.Parent = n
-
-    local c = Instance.new("TextLabel")
-    c.Text = cfg.Content or ""
-    c.Size = UDim2.new(1, -10, 0, 20)
-    c.Position = UDim2.new(0, 10, 0, 25)
-    c.TextColor3 = Color3.fromRGB(180, 180, 180)
-    c.Font = Enum.Font.Gotham
-    c.BackgroundTransparency = 1
-    c.TextXAlignment = Enum.TextXAlignment.Left
-    c.Parent = n
-
-    TS:Create(n, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Position = UDim2.new(1, -260, 1, -70)}):Play()
-    task.delay(cfg.Duration or 3, function()
-        TS:Create(n, TweenInfo.new(0.5), {Position = UDim2.new(1, 10, 1, -70)}):Play()
-        task.wait(0.5) n:Destroy()
-    end)
-end
-
 function Library:Init(cfg)
-    local SG = Instance.new("ScreenGui", CoreGui)
-    SG.Name = "NexxtoUI"
+    local MainUI = Instance.new("ScreenGui", CoreGui)
+    MainUI.Name = "Nexxto_Syde"
     
-    local Main = Instance.new("Frame", SG)
-    Main.Size = UDim2.new(0, 550, 0, 380)
+    local Main = Instance.new("Frame", MainUI)
+    Main.Size = cfg.Size or UDim2.new(0, 580, 0, 380)
     Main.Position = UDim2.new(0.5, 0, 0.5, 0)
     Main.AnchorPoint = Vector2.new(0.5, 0.5)
-    Main.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-    makeDraggable(Main)
+    Main.BackgroundColor3 = Color3.fromRGB(11, 11, 11)
+    Main.BorderSizePixel = 0
+    Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+    
+    local Outline = Instance.new("UIStroke", Main)
+    Outline.Color = Color3.fromRGB(35, 35, 35)
+    Outline.Thickness = 1
+    Outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    local Top = Instance.new("Frame", Main)
-    Top.Size = UDim2.new(1, 0, 0, 40)
-    Top.BackgroundTransparency = 1
+    local Sidebar = Instance.new("Frame", Main)
+    Sidebar.Size = UDim2.new(0, 160, 1, 0)
+    Sidebar.BackgroundColor3 = Color3.fromRGB(9, 9, 9)
+    Sidebar.BorderSizePixel = 0
+    Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 12)
+    
+    local SideOutline = Instance.new("Frame", Sidebar)
+    SideOutline.Size = UDim2.new(0, 1, 1, -20)
+    SideOutline.Position = UDim2.new(1, 0, 0, 10)
+    SideOutline.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    SideOutline.BorderSizePixel = 0
 
-    local Title = Instance.new("TextLabel", Top)
-    Title.Text = cfg.Title or "Syde UI"
-    Title.Size = UDim2.new(0, 200, 1, 0)
-    Title.Position = UDim2.new(0, 15, 0, 0)
+    local Title = Instance.new("TextLabel", Sidebar)
+    Title.Text = cfg.Title or "SYDE"
+    Title.Size = UDim2.new(1, 0, 0, 40)
+    Title.Position = UDim2.new(0, 15, 0, 10)
     Title.TextColor3 = Color3.fromRGB(255, 255, 255)
     Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 18
     Title.BackgroundTransparency = 1
     Title.TextXAlignment = Enum.TextXAlignment.Left
 
-    local Sub = Instance.new("TextLabel", Top)
-    Sub.Text = cfg.SubText or ""
-    Sub.Position = UDim2.new(0, 15, 0, 22)
-    Sub.TextColor3 = Color3.fromRGB(120, 120, 120)
-    Sub.Font = Enum.Font.Gotham
-    Sub.TextSize = 10
-    Sub.BackgroundTransparency = 1
-    Sub.Parent = Top
+    local TabContainer = Instance.new("ScrollingFrame", Sidebar)
+    TabContainer.Size = UDim2.new(1, -10, 1, -80)
+    TabContainer.Position = UDim2.new(0, 5, 0, 60)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.ScrollBarThickness = 0
+    local TabList = Instance.new("UIListLayout", TabContainer)
+    TabList.Padding = UDim.new(0, 4)
 
-    local TabHolder = Instance.new("Frame", Main)
-    TabHolder.Size = UDim2.new(0, 150, 1, -50)
-    TabHolder.Position = UDim2.new(0, 10, 0, 45)
-    TabHolder.BackgroundTransparency = 1
-    local TabList = Instance.new("UIListLayout", TabHolder)
-    TabList.Padding = UDim.new(0, 5)
+    local Content = Instance.new("Frame", Main)
+    Content.Size = UDim2.new(1, -170, 1, -10)
+    Content.Position = UDim2.new(0, 165, 0, 5)
+    Content.BackgroundTransparency = 1
 
-    local Container = Instance.new("Frame", Main)
-    Container.Size = UDim2.new(1, -180, 1, -50)
-    Container.Position = UDim2.new(0, 170, 0, 45)
-    Container.BackgroundTransparency = 1
+    makeDraggable(Main, Sidebar)
 
     local Window = {}
-    function Window:InitTab(name)
-        local TabBtn = Instance.new("TextButton", TabHolder)
-        TabBtn.Size = UDim2.new(1, 0, 0, 32)
-        TabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        TabBtn.Text = name
-        TabBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-        TabBtn.Font = Enum.Font.Gotham
-        Instance.new("UICorner", TabBtn)
+    function Window:InitTab(name, iconId)
+        local TabBtn = Instance.new("TextButton", TabContainer)
+        TabBtn.Size = UDim2.new(1, 0, 0, 34)
+        TabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        TabBtn.BackgroundTransparency = 1
+        TabBtn.Text = "          " .. name
+        TabBtn.TextColor3 = Color3.fromRGB(140, 140, 140)
+        TabBtn.Font = Enum.Font.GothamMedium
+        TabBtn.TextSize = 13
+        TabBtn.TextXAlignment = Enum.TextXAlignment.Left
+        Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
 
-        local Page = Instance.new("ScrollingFrame", Container)
+        local Icon = Instance.new("ImageLabel", TabBtn)
+        Icon.Size = UDim2.new(0, 18, 0, 18)
+        Icon.Position = UDim2.new(0, 10, 0.5, -9)
+        Icon.BackgroundTransparency = 1
+        Icon.Image = "rbxassetid://" .. (iconId or 0)
+        Icon.ImageColor3 = Color3.fromRGB(140, 140, 140)
+
+        local Page = Instance.new("ScrollingFrame", Content)
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.Visible = false
@@ -119,16 +103,26 @@ function Library:Init(cfg)
         pList.Padding = UDim.new(0, 8)
 
         TabBtn.MouseButton1Click:Connect(function()
-            for _, v in pairs(Container:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
+            for _, v in pairs(Content:GetChildren()) do if v:IsA("ScrollingFrame") then v.Visible = false end end
+            for _, v in pairs(TabContainer:GetChildren()) do
+                if v:IsA("TextButton") then
+                    v.BackgroundTransparency = 1
+                    v.TextColor3 = Color3.fromRGB(140, 140, 140)
+                    v.ImageLabel.ImageColor3 = Color3.fromRGB(140, 140, 140)
+                end
+            end
             Page.Visible = true
+            TabBtn.BackgroundTransparency = 0.95
+            TabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Icon.ImageColor3 = Color3.fromRGB(0, 160, 255)
         end)
 
         local Elements = {}
         function Elements:Section(title)
             local s = Instance.new("TextLabel", Page)
             s.Text = title:upper()
-            s.Size = UDim2.new(1, 0, 0, 20)
-            s.TextColor3 = Color3.fromRGB(0, 170, 255)
+            s.Size = UDim2.new(1, 0, 0, 25)
+            s.TextColor3 = Color3.fromRGB(100, 100, 100)
             s.Font = Enum.Font.GothamBold
             s.TextSize = 10
             s.BackgroundTransparency = 1
@@ -137,13 +131,15 @@ function Library:Init(cfg)
 
         function Elements:Button(bcfg)
             local b = Instance.new("TextButton", Page)
-            b.Size = UDim2.new(1, -5, 0, 40)
-            b.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+            b.Size = UDim2.new(1, -10, 0, 42)
+            b.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
             b.Text = "  " .. bcfg.Title
-            b.TextColor3 = Color3.fromRGB(220, 220, 220)
+            b.TextColor3 = Color3.fromRGB(230, 230, 230)
             b.TextXAlignment = Enum.TextXAlignment.Left
             b.Font = Enum.Font.Gotham
+            b.TextSize = 13
             Instance.new("UICorner", b)
+            Instance.new("UIStroke", b).Color = Color3.fromRGB(30, 30, 30)
             b.MouseButton1Click:Connect(bcfg.CallBack)
         end
 
