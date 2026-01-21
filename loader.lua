@@ -99,7 +99,7 @@ function NexxtoLib:CreateWindow(opts)
     opts = opts or {}
     local title = opts.Title or "Nexxto Library"
     local subtitle = opts.Subtitle or "by Ian"
-    local size = opts.Size or UDim2.fromOffset(800, 540)
+    local size = opts.Size or UDim2.fromOffset(400, 340)
     local toggleKey = opts.ToggleKey or Enum.KeyCode.RightShift
     local icon = opts.icon
     local sg = new("ScreenGui", {Name = "NexxtoLib", ResetOnSpawn = false, Parent = PlayerGui})
@@ -506,3 +506,57 @@ function NexxtoLib:CreateWindow(opts)
 end
 
 return NexxtoLib
+
+-- Example usage right here (after the library code)
+local Window = NexxtoLib:CreateWindow({
+    Title = "Nexxto Library",
+    Subtitle = "by Ian",
+    Size = UDim2.fromOffset(400, 340),
+    ToggleKey = Enum.KeyCode.RightShift,
+    icon = 125890342252654
+})
+
+local Main = Window:AddTab("Main")
+
+Main:AddToggle({
+    Text = "Godmode",
+    Description = "Invulnerability toggle",
+    Default = false,
+    Callback = function(v) print("Godmode:", v) end
+})
+
+Main:AddSlider({
+    Text = "WalkSpeed",
+    Description = "Movement speed",
+    Min = 16,
+    Max = 150,
+    Default = 16,
+    Callback = function(v)
+        local h = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+        if h then h.WalkSpeed = v end
+    end
+})
+
+Main:AddDropdown({
+    Text = "ESP Color",
+    Description = "Highlight color",
+    Items = {"Green", "Red", "Blue"},
+    Default = "Green",
+    Callback = function(v) print("ESP:", v) end
+})
+
+Main:AddTextbox({
+    Text = "Input",
+    Description = "Type something",
+    Placeholder = "Hello...",
+    Callback = function(txt) print("Input:", txt) end
+})
+
+Main:AddButton({
+    Text = "Test Notification",
+    Callback = function()
+        NexxtoLib:Notify("UI Loaded!", 4, NexxtoLib.Theme.Success)
+    end
+})
+
+print("Nexxto UI ready - check floating icon")
