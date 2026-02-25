@@ -1,3 +1,4 @@
+-- loader.lua
 local UILibrary = {}
 UILibrary.__index = UILibrary
 
@@ -59,16 +60,19 @@ local function MakeDraggable(frame, handle)
 end
 
 local Theme = {
-	Background = Color3.fromRGB(25, 25, 25),
-	Secondary = Color3.fromRGB(35, 35, 35),
-	Tertiary = Color3.fromRGB(45, 45, 45),
+	Background = Color3.fromRGB(18, 18, 22),
+	Secondary = Color3.fromRGB(28, 28, 32),
+	Tertiary = Color3.fromRGB(38, 38, 44),
+	Accent = Color3.fromRGB(88, 101, 242),
+	AccentLight = Color3.fromRGB(108, 121, 255),
 	Text = Color3.fromRGB(255, 255, 255),
-	TextDark = Color3.fromRGB(175, 175, 175),
-	Accent = Color3.fromRGB(255, 255, 255),
-	Line = Color3.fromRGB(50, 50, 50),
+	TextDark = Color3.fromRGB(150, 150, 160),
+	Line = Color3.fromRGB(45, 45, 55),
 	Highlight = Color3.fromRGB(255, 255, 255),
-	ToggleOn = Color3.fromRGB(0, 255, 128),
-	ToggleOff = Color3.fromRGB(60, 60, 60)
+	ToggleOn = Color3.fromRGB(88, 101, 242),
+	ToggleOff = Color3.fromRGB(60, 60, 70),
+	Success = Color3.fromRGB(59, 165, 93),
+	Error = Color3.fromRGB(237, 66, 69)
 }
 
 function UILibrary.new(config)
@@ -77,7 +81,7 @@ function UILibrary.new(config)
 	config = config or {}
 	self.Title = config.name or config.title or "UI Library"
 	self.Subtitle = config.subtitle or "v1.0"
-	self.Size = config.size or {width = 600, height = 450}
+	self.Size = config.size or {width = 650, height = 500}
 	self.IconText = config.text or "UI"
 	self.Tabs = {}
 	self.ActiveTab = nil
@@ -116,7 +120,13 @@ function UILibrary:CreateMainWindow()
 	Tween(self.MainFrame, {Size = UDim2.new(0, self.Size.width, 0, self.Size.height)}, 0.4, Enum.EasingStyle.Back)
 	
 	local Corner = Create("UICorner", {
-		CornerRadius = UDim.new(0, 6),
+		CornerRadius = UDim.new(0, 12),
+		Parent = self.MainFrame
+	})
+	
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Line,
+		Thickness = 1,
 		Parent = self.MainFrame
 	})
 	
@@ -124,20 +134,21 @@ function UILibrary:CreateMainWindow()
 		Name = "Shadow",
 		Parent = self.MainFrame,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 4),
-		Size = UDim2.new(1, 20, 1, 20),
+		Position = UDim2.new(0.5, 0, 0.5, 6),
+		Size = UDim2.new(1, 40, 1, 40),
 		BackgroundTransparency = 1,
-		Image = "rbxassetid://5554236805",
+		Image = "rbxassetid://6015897843",
 		ImageColor3 = Color3.fromRGB(0, 0, 0),
-		ImageTransparency = 0.6,
+		ImageTransparency = 0.5,
 		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(23, 23, 277, 277),
+		SliceCenter = Rect.new(49, 49, 450, 450),
 		ZIndex = -1
 	})
 	
 	self:CreateHeader()
 	self:CreateSidebar()
 	self:CreateContentArea()
+	self:CreateFooter()
 	
 	MakeDraggable(self.MainFrame)
 end
@@ -146,62 +157,69 @@ function UILibrary:CreateHeader()
 	local Header = Create("Frame", {
 		Name = "Header",
 		Parent = self.MainFrame,
-		Size = UDim2.new(1, 0, 0, 110),
+		Size = UDim2.new(1, 0, 0, 65),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
 	
-	local TopBar = Create("Frame", {
-		Name = "TopBar",
+	local Corner = Create("UICorner", {
+		CornerRadius = UDim.new(0, 12),
+		Parent = Header
+	})
+	
+	local BottomCover = Create("Frame", {
+		Name = "BottomCover",
 		Parent = Header,
-		Size = UDim2.new(1, 0, 0, 50),
-		BackgroundTransparency = 1
+		Size = UDim2.new(1, 0, 0, 15),
+		Position = UDim2.new(0, 0, 1, -15),
+		BackgroundColor3 = Theme.Secondary,
+		BorderSizePixel = 0
 	})
 	
 	local TitleLabel = Create("TextLabel", {
 		Name = "Title",
-		Parent = TopBar,
-		Size = UDim2.new(1, -120, 0, 25),
-		Position = UDim2.new(0, 15, 0, 12),
+		Parent = Header,
+		Size = UDim2.new(1, -140, 0, 24),
+		Position = UDim2.new(0, 20, 0, 12),
 		BackgroundTransparency = 1,
 		Text = self.Title,
 		TextColor3 = Theme.Text,
-		TextSize = 20,
+		TextSize = 18,
 		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	local SubtitleLabel = Create("TextLabel", {
 		Name = "Subtitle",
-		Parent = TopBar,
-		Size = UDim2.new(1, -120, 0, 18),
-		Position = UDim2.new(0, 15, 0, 32),
+		Parent = Header,
+		Size = UDim2.new(1, -140, 0, 16),
+		Position = UDim2.new(0, 20, 0, 36),
 		BackgroundTransparency = 1,
 		Text = self.Subtitle,
 		TextColor3 = Theme.TextDark,
-		TextSize = 12,
-		Font = Enum.Font.Gotham,
+		TextSize = 11,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	self.PingLabel = Create("TextLabel", {
 		Name = "Ping",
-		Parent = TopBar,
-		Size = UDim2.new(0, 60, 0, 20),
-		Position = UDim2.new(1, -180, 0, 15),
+		Parent = Header,
+		Size = UDim2.new(0, 70, 0, 20),
+		Position = UDim2.new(1, -200, 0, 15),
 		BackgroundTransparency = 1,
 		Text = "0 ms",
 		TextColor3 = Theme.TextDark,
-		TextSize = 12,
-		Font = Enum.Font.Gotham
+		TextSize = 11,
+		Font = Enum.Font.GothamMedium
 	})
 	
 	local PingDot = Create("Frame", {
 		Name = "PingDot",
 		Parent = self.PingLabel,
-		Size = UDim2.new(0, 6, 0, 6),
-		Position = UDim2.new(0, -12, 0.5, -3),
-		BackgroundColor3 = Color3.fromRGB(0, 255, 100),
+		Size = UDim2.new(0, 8, 0, 8),
+		Position = UDim2.new(0, -14, 0.5, -4),
+		BackgroundColor3 = Theme.Success,
 		BorderSizePixel = 0
 	})
 	
@@ -210,22 +228,62 @@ function UILibrary:CreateHeader()
 		Parent = PingDot
 	})
 	
+	local ButtonContainer = Create("Frame", {
+		Name = "ButtonContainer",
+		Parent = Header,
+		Size = UDim2.new(0, 70, 0, 32),
+		Position = UDim2.new(1, -90, 0, 16),
+		BackgroundTransparency = 1
+	})
+	
 	local HideButton = Create("TextButton", {
 		Name = "HideButton",
-		Parent = TopBar,
-		Size = UDim2.new(0, 28, 0, 28),
-		Position = UDim2.new(1, -70, 0, 11),
+		Parent = ButtonContainer,
+		Size = UDim2.new(0, 30, 0, 30),
+		Position = UDim2.new(0, 0, 0, 1),
 		BackgroundColor3 = Theme.Tertiary,
-		Text = "-",
-		TextColor3 = Theme.Text,
-		TextSize = 18,
-		Font = Enum.Font.GothamBold,
+		Text = "",
 		AutoButtonColor = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = HideButton
+	})
+	
+	local HideIcon = Create("ImageLabel", {
+		Name = "Icon",
+		Parent = HideButton,
+		Size = UDim2.new(0, 14, 0, 14),
+		Position = UDim2.new(0.5, -7, 0.5, -7),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://7072706620",
+		ImageColor3 = Theme.Text
+	})
+	
+	local CloseButton = Create("TextButton", {
+		Name = "CloseButton",
+		Parent = ButtonContainer,
+		Size = UDim2.new(0, 30, 0, 30),
+		Position = UDim2.new(0, 38, 0, 1),
+		BackgroundColor3 = Theme.Tertiary,
+		Text = "",
+		AutoButtonColor = false
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 8),
+		Parent = CloseButton
+	})
+	
+	local CloseIcon = Create("ImageLabel", {
+		Name = "Icon",
+		Parent = CloseButton,
+		Size = UDim2.new(0, 14, 0, 14),
+		Position = UDim2.new(0.5, -7, 0.5, -7),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://7072725342",
+		ImageColor3 = Theme.Text
 	})
 	
 	HideButton.MouseEnter:Connect(function()
@@ -240,26 +298,8 @@ function UILibrary:CreateHeader()
 		self:Minimize()
 	end)
 	
-	local CloseButton = Create("TextButton", {
-		Name = "CloseButton",
-		Parent = TopBar,
-		Size = UDim2.new(0, 28, 0, 28),
-		Position = UDim2.new(1, -38, 0, 11),
-		BackgroundColor3 = Theme.Tertiary,
-		Text = "X",
-		TextColor3 = Theme.Text,
-		TextSize = 14,
-		Font = Enum.Font.GothamBold,
-		AutoButtonColor = false
-	})
-	
-	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
-		Parent = CloseButton
-	})
-	
 	CloseButton.MouseEnter:Connect(function()
-		Tween(CloseButton, {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}, 0.2)
+		Tween(CloseButton, {BackgroundColor3 = Theme.Error}, 0.2)
 	end)
 	
 	CloseButton.MouseLeave:Connect(function()
@@ -269,63 +309,14 @@ function UILibrary:CreateHeader()
 	CloseButton.MouseButton1Click:Connect(function()
 		self:ShowConfirmation()
 	end)
-	
-	local InfoBar = Create("Frame", {
-		Name = "InfoBar",
-		Parent = Header,
-		Size = UDim2.new(1, 0, 0, 60),
-		Position = UDim2.new(0, 0, 0, 50),
-		BackgroundTransparency = 1
-	})
-	
-	local AvatarImage = Create("ImageLabel", {
-		Name = "Avatar",
-		Parent = InfoBar,
-		Size = UDim2.new(0, 40, 0, 40),
-		Position = UDim2.new(0, 15, 0, 10),
-		BackgroundColor3 = Theme.Tertiary,
-		Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48),
-		BorderSizePixel = 0
-	})
-	
-	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
-		Parent = AvatarImage
-	})
-	
-	local UsernameLabel = Create("TextLabel", {
-		Name = "Username",
-		Parent = InfoBar,
-		Size = UDim2.new(0, 200, 0, 20),
-		Position = UDim2.new(0, 65, 0, 10),
-		BackgroundTransparency = 1,
-		Text = LocalPlayer.DisplayName,
-		TextColor3 = Theme.Text,
-		TextSize = 14,
-		Font = Enum.Font.GothamBold,
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
-	
-	self.DateTimeLabel = Create("TextLabel", {
-		Name = "DateTime",
-		Parent = InfoBar,
-		Size = UDim2.new(0, 200, 0, 15),
-		Position = UDim2.new(0, 65, 0, 32),
-		BackgroundTransparency = 1,
-		Text = "",
-		TextColor3 = Theme.TextDark,
-		TextSize = 11,
-		Font = Enum.Font.Gotham,
-		TextXAlignment = Enum.TextXAlignment.Left
-	})
 end
 
 function UILibrary:CreateSidebar()
 	self.Sidebar = Create("Frame", {
 		Name = "Sidebar",
 		Parent = self.MainFrame,
-		Size = UDim2.new(0, 140, 1, -110),
-		Position = UDim2.new(0, 0, 0, 110),
+		Size = UDim2.new(0, 160, 1, -115),
+		Position = UDim2.new(0, 0, 0, 65),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
@@ -342,7 +333,8 @@ function UILibrary:CreateSidebar()
 	self.TabContainer = Create("ScrollingFrame", {
 		Name = "TabContainer",
 		Parent = self.Sidebar,
-		Size = UDim2.new(1, -1, 1, 0),
+		Size = UDim2.new(1, -10, 1, 0),
+		Position = UDim2.new(0, 5, 0, 0),
 		BackgroundTransparency = 1,
 		ScrollBarThickness = 0,
 		ScrollingDirection = Enum.ScrollingDirection.Y,
@@ -352,13 +344,13 @@ function UILibrary:CreateSidebar()
 	Create("UIListLayout", {
 		Parent = self.TabContainer,
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 1)
+		Padding = UDim.new(0, 4)
 	})
 	
 	Create("UIPadding", {
 		Parent = self.TabContainer,
-		PaddingTop = UDim.new(0, 5),
-		PaddingBottom = UDim.new(0, 5)
+		PaddingTop = UDim.new(0, 8),
+		PaddingBottom = UDim.new(0, 8)
 	})
 end
 
@@ -366,11 +358,91 @@ function UILibrary:CreateContentArea()
 	self.ContentFrame = Create("Frame", {
 		Name = "Content",
 		Parent = self.MainFrame,
-		Size = UDim2.new(1, -140, 1, -110),
-		Position = UDim2.new(0, 140, 0, 110),
+		Size = UDim2.new(1, -160, 1, -115),
+		Position = UDim2.new(0, 160, 0, 65),
 		BackgroundColor3 = Theme.Background,
 		BorderSizePixel = 0,
 		ClipsDescendants = true
+	})
+end
+
+function UILibrary:CreateFooter()
+	local Footer = Create("Frame", {
+		Name = "Footer",
+		Parent = self.MainFrame,
+		Size = UDim2.new(1, 0, 0, 50),
+		Position = UDim2.new(0, 0, 1, -50),
+		BackgroundColor3 = Theme.Secondary,
+		BorderSizePixel = 0
+	})
+	
+	local Corner = Create("UICorner", {
+		CornerRadius = UDim.new(0, 12),
+		Parent = Footer
+	})
+	
+	local TopCover = Create("Frame", {
+		Name = "TopCover",
+		Parent = Footer,
+		Size = UDim2.new(1, 0, 0, 15),
+		BackgroundColor3 = Theme.Secondary,
+		BorderSizePixel = 0
+	})
+	
+	local TopSeparator = Create("Frame", {
+		Name = "TopSeparator",
+		Parent = Footer,
+		Size = UDim2.new(1, -30, 0, 1),
+		Position = UDim2.new(0, 15, 0, 0),
+		BackgroundColor3 = Theme.Line,
+		BorderSizePixel = 0
+	})
+	
+	local AvatarImage = Create("ImageLabel", {
+		Name = "Avatar",
+		Parent = Footer,
+		Size = UDim2.new(0, 34, 0, 34),
+		Position = UDim2.new(0, 20, 0.5, -17),
+		BackgroundColor3 = Theme.Tertiary,
+		Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48),
+		BorderSizePixel = 0
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 10),
+		Parent = AvatarImage
+	})
+	
+	local AvatarStroke = Create("UIStroke", {
+		Color = Theme.Accent,
+		Thickness = 2,
+		Parent = AvatarImage
+	})
+	
+	local UsernameLabel = Create("TextLabel", {
+		Name = "Username",
+		Parent = Footer,
+		Size = UDim2.new(0, 200, 0, 18),
+		Position = UDim2.new(0, 62, 0, 8),
+		BackgroundTransparency = 1,
+		Text = LocalPlayer.DisplayName,
+		TextColor3 = Theme.Text,
+		TextSize = 13,
+		Font = Enum.Font.GothamBold,
+		TextXAlignment = Enum.TextXAlignment.Left
+	})
+	
+	self.DateTimeLabel = Create("TextLabel", {
+		Name = "DateTime",
+		Parent = Footer,
+		Size = UDim2.new(0, 250, 0, 14),
+		Position = UDim2.new(0, 62, 0, 26),
+		BackgroundTransparency = 1,
+		Text = "",
+		TextColor3 = Theme.TextDark,
+		TextSize = 10,
+		Font = Enum.Font.GothamMedium,
+		TextXAlignment = Enum.TextXAlignment.Left
 	})
 end
 
@@ -385,12 +457,12 @@ function UILibrary:CreateDraggableIcon()
 	self.IconButton = Create("TextButton", {
 		Name = "Icon",
 		Parent = self.IconGui,
-		Size = UDim2.new(0, 50, 0, 50),
-		Position = UDim2.new(0.5, -25, 0.5, -25),
+		Size = UDim2.new(0, 55, 0, 55),
+		Position = UDim2.new(0.5, -27, 0.5, -27),
 		BackgroundColor3 = Theme.Secondary,
 		Text = self.IconText,
 		TextColor3 = Theme.Text,
-		TextSize = 18,
+		TextSize = 20,
 		Font = Enum.Font.GothamBold,
 		AutoButtonColor = false,
 		Active = true,
@@ -402,27 +474,35 @@ function UILibrary:CreateDraggableIcon()
 		Parent = self.IconButton
 	})
 	
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Accent,
+		Thickness = 2,
+		Parent = self.IconButton
+	})
+	
 	local Shadow = Create("ImageLabel", {
 		Name = "Shadow",
 		Parent = self.IconButton,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 2),
-		Size = UDim2.new(1, 10, 1, 10),
+		Position = UDim2.new(0.5, 0, 0.5, 4),
+		Size = UDim2.new(1, 20, 1, 20),
 		BackgroundTransparency = 1,
-		Image = "rbxassetid://5554236805",
+		Image = "rbxassetid://6015897843",
 		ImageColor3 = Color3.fromRGB(0, 0, 0),
-		ImageTransparency = 0.7,
+		ImageTransparency = 0.6,
 		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(23, 23, 277, 277),
+		SliceCenter = Rect.new(49, 49, 450, 450),
 		ZIndex = -1
 	})
 	
 	self.IconButton.MouseEnter:Connect(function()
-		Tween(self.IconButton, {Size = UDim2.new(0, 55, 0, 55), BackgroundColor3 = Theme.Tertiary}, 0.2)
+		Tween(self.IconButton, {Size = UDim2.new(0, 60, 0, 60), BackgroundColor3 = Theme.Tertiary}, 0.2)
+		Tween(Stroke, {Color = Theme.AccentLight}, 0.2)
 	end)
 	
 	self.IconButton.MouseLeave:Connect(function()
-		Tween(self.IconButton, {Size = UDim2.new(0, 50, 0, 50), BackgroundColor3 = Theme.Secondary}, 0.2)
+		Tween(self.IconButton, {Size = UDim2.new(0, 55, 0, 55), BackgroundColor3 = Theme.Secondary}, 0.2)
+		Tween(Stroke, {Color = Theme.Accent}, 0.2)
 	end)
 	
 	self.IconButton.MouseButton1Click:Connect(function()
@@ -445,31 +525,47 @@ function UILibrary:CreateConfirmationModal()
 		Parent = self.ModalGui,
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-		BackgroundTransparency = 0.5,
+		BackgroundTransparency = 0.4,
 		BorderSizePixel = 0
 	})
 	
 	local ModalFrame = Create("Frame", {
 		Name = "Modal",
 		Parent = Overlay,
-		Size = UDim2.new(0, 300, 0, 150),
-		Position = UDim2.new(0.5, -150, 0.5, -75),
+		Size = UDim2.new(0, 320, 0, 160),
+		Position = UDim2.new(0.5, -160, 0.5, -80),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 6),
+		CornerRadius = UDim.new(0, 16),
 		Parent = ModalFrame
+	})
+	
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Line,
+		Thickness = 1,
+		Parent = ModalFrame
+	})
+	
+	local Icon = Create("ImageLabel", {
+		Name = "Icon",
+		Parent = ModalFrame,
+		Size = UDim2.new(0, 40, 0, 40),
+		Position = UDim2.new(0.5, -20, 0, 20),
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://7072723598",
+		ImageColor3 = Theme.Error
 	})
 	
 	local Title = Create("TextLabel", {
 		Name = "Title",
 		Parent = ModalFrame,
-		Size = UDim2.new(1, 0, 0, 40),
-		Position = UDim2.new(0, 0, 0, 10),
+		Size = UDim2.new(1, 0, 0, 24),
+		Position = UDim2.new(0, 0, 0, 65),
 		BackgroundTransparency = 1,
-		Text = "Confirm Close",
+		Text = "Close UI?",
 		TextColor3 = Theme.Text,
 		TextSize = 18,
 		Font = Enum.Font.GothamBold
@@ -478,23 +574,30 @@ function UILibrary:CreateConfirmationModal()
 	local Message = Create("TextLabel", {
 		Name = "Message",
 		Parent = ModalFrame,
-		Size = UDim2.new(1, -40, 0, 40),
-		Position = UDim2.new(0, 20, 0, 50),
+		Size = UDim2.new(1, -40, 0, 20),
+		Position = UDim2.new(0, 20, 0, 90),
 		BackgroundTransparency = 1,
-		Text = "Are you sure you want to close the UI?",
+		Text = "Are you sure you want to exit?",
 		TextColor3 = Theme.TextDark,
-		TextSize = 14,
-		Font = Enum.Font.Gotham,
+		TextSize = 13,
+		Font = Enum.Font.GothamMedium,
 		TextWrapped = true
+	})
+	
+	local ButtonContainer = Create("Frame", {
+		Name = "Buttons",
+		Parent = ModalFrame,
+		Size = UDim2.new(1, -40, 0, 36),
+		Position = UDim2.new(0, 20, 1, -56),
+		BackgroundTransparency = 1
 	})
 	
 	local ConfirmButton = Create("TextButton", {
 		Name = "Confirm",
-		Parent = ModalFrame,
-		Size = UDim2.new(0, 120, 0, 35),
-		Position = UDim2.new(0, 20, 1, -55),
-		BackgroundColor3 = Color3.fromRGB(200, 50, 50),
-		Text = "Confirm",
+		Parent = ButtonContainer,
+		Size = UDim2.new(0.48, 0, 1, 0),
+		BackgroundColor3 = Theme.Error,
+		Text = "Close",
 		TextColor3 = Theme.Text,
 		TextSize = 14,
 		Font = Enum.Font.GothamBold,
@@ -502,17 +605,17 @@ function UILibrary:CreateConfirmationModal()
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = ConfirmButton
 	})
 	
 	local DeclineButton = Create("TextButton", {
 		Name = "Decline",
-		Parent = ModalFrame,
-		Size = UDim2.new(0, 120, 0, 35),
-		Position = UDim2.new(1, -140, 1, -55),
+		Parent = ButtonContainer,
+		Size = UDim2.new(0.48, 0, 1, 0),
+		Position = UDim2.new(0.52, 0, 0, 0),
 		BackgroundColor3 = Theme.Tertiary,
-		Text = "Decline",
+		Text = "Cancel",
 		TextColor3 = Theme.Text,
 		TextSize = 14,
 		Font = Enum.Font.GothamBold,
@@ -520,16 +623,16 @@ function UILibrary:CreateConfirmationModal()
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = DeclineButton
 	})
 	
 	ConfirmButton.MouseEnter:Connect(function()
-		Tween(ConfirmButton, {BackgroundColor3 = Color3.fromRGB(220, 70, 70)}, 0.2)
+		Tween(ConfirmButton, {BackgroundColor3 = Color3.fromRGB(255, 85, 90)}, 0.2)
 	end)
 	
 	ConfirmButton.MouseLeave:Connect(function()
-		Tween(ConfirmButton, {BackgroundColor3 = Color3.fromRGB(200, 50, 50)}, 0.2)
+		Tween(ConfirmButton, {BackgroundColor3 = Theme.Error}, 0.2)
 	end)
 	
 	DeclineButton.MouseEnter:Connect(function()
@@ -557,12 +660,12 @@ end
 
 function UILibrary:ShowConfirmation()
 	self.ModalGui.Enabled = true
-	Tween(self.ModalGui.Overlay, {BackgroundTransparency = 0.5}, 0.2)
-	Tween(self.ModalGui.Overlay.Modal, {Size = UDim2.new(0, 300, 0, 150)}, 0.3, Enum.EasingStyle.Back)
+	Tween(self.ModalGui.Overlay, {BackgroundTransparency = 0.4}, 0.2)
+	Tween(self.ModalGui.Overlay.Modal, {Size = UDim2.new(0, 320, 0, 160)}, 0.3, Enum.EasingStyle.Back)
 end
 
 function UILibrary:HideConfirmation()
-	Tween(self.ModalGui.Overlay.Modal, {Size = UDim2.new(0, 280, 0, 140)}, 0.2)
+	Tween(self.ModalGui.Overlay.Modal, {Size = UDim2.new(0, 300, 0, 150)}, 0.2)
 	Tween(self.ModalGui.Overlay, {BackgroundTransparency = 1}, 0.2).Completed:Connect(function()
 		self.ModalGui.Enabled = false
 	end)
@@ -575,7 +678,7 @@ function UILibrary:Minimize()
 	Tween(self.MainFrame, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(self.LastPosition.X.Scale, self.LastPosition.X.Offset + centerOffsetX, self.LastPosition.Y.Scale, self.LastPosition.Y.Offset + centerOffsetY)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In).Completed:Connect(function()
 		self.ScreenGui.Enabled = false
 		self.IconGui.Enabled = true
-		Tween(self.IconButton, {Size = UDim2.new(0, 50, 0, 50)}, 0.3, Enum.EasingStyle.Back)
+		Tween(self.IconButton, {Size = UDim2.new(0, 55, 0, 55)}, 0.3, Enum.EasingStyle.Back)
 	end)
 	self.IsOpen = false
 end
@@ -599,13 +702,11 @@ function UILibrary:StartPingUpdater()
 			local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
 			self.PingLabel.Text = ping .. " ms"
 			
-			local color = Color3.fromRGB(0, 255, 100)
+			local color = Theme.Success
 			if ping > 100 then
-				color = Color3.fromRGB(255, 255, 0)
+				color = Color3.fromRGB(250, 166, 26)
 			elseif ping > 200 then
-				color = Color3.fromRGB(255, 100, 0)
-			elseif ping > 300 then
-				color = Color3.fromRGB(255, 0, 0)
+				color = Theme.Error
 			end
 			
 			self.PingLabel.PingDot.BackgroundColor3 = color
@@ -619,7 +720,7 @@ function UILibrary:StartTimeUpdater()
 		while self.ScreenGui and self.ScreenGui.Parent do
 			local dateStr = os.date("%B %d, %Y")
 			local timeStr = os.date("%I:%M %p")
-			self.DateTimeLabel.Text = dateStr .. " | " .. timeStr
+			self.DateTimeLabel.Text = dateStr .. " at " .. timeStr
 			task.wait(1)
 		end
 	end)
@@ -634,14 +735,19 @@ function UILibrary:AddTab(name)
 	local TabButton = Create("TextButton", {
 		Name = name .. "Tab",
 		Parent = self.TabContainer,
-		Size = UDim2.new(1, -5, 0, 32),
+		Size = UDim2.new(1, 0, 0, 36),
 		BackgroundColor3 = Theme.Secondary,
 		Text = name,
 		TextColor3 = Theme.TextDark,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		AutoButtonColor = false,
 		LayoutOrder = #self.Tabs
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 8),
+		Parent = TabButton
 	})
 	
 	Create("UIPadding", {
@@ -655,8 +761,13 @@ function UILibrary:AddTab(name)
 		Size = UDim2.new(0, 3, 0, 0),
 		Position = UDim2.new(0, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
-		BackgroundColor3 = Theme.Highlight,
+		BackgroundColor3 = Theme.Accent,
 		BorderSizePixel = 0
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 2),
+		Parent = Indicator
 	})
 	
 	tab.Button = TabButton
@@ -667,18 +778,19 @@ function UILibrary:AddTab(name)
 		Parent = self.ContentFrame,
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
-		ScrollBarThickness = 2,
-		ScrollBarImageColor3 = Theme.Line,
+		ScrollBarThickness = 3,
+		ScrollBarImageColor3 = Theme.Accent,
+		ScrollBarImageTransparency = 0.5,
 		Visible = false,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y
 	})
 	
 	Create("UIPadding", {
 		Parent = Content,
-		PaddingLeft = UDim.new(0, 12),
-		PaddingRight = UDim.new(0, 12),
-		PaddingTop = UDim.new(0, 10),
-		PaddingBottom = UDim.new(0, 10)
+		PaddingLeft = UDim.new(0, 15),
+		PaddingRight = UDim.new(0, 15),
+		PaddingTop = UDim.new(0, 12),
+		PaddingBottom = UDim.new(0, 12)
 	})
 	
 	Create("UIListLayout", {
@@ -695,13 +807,13 @@ function UILibrary:AddTab(name)
 	
 	TabButton.MouseEnter:Connect(function()
 		if self.ActiveTab ~= tab then
-			Tween(TabButton, {TextColor3 = Theme.Text}, 0.2)
+			Tween(TabButton, {BackgroundColor3 = Theme.Tertiary}, 0.2)
 		end
 	end)
 	
 	TabButton.MouseLeave:Connect(function()
 		if self.ActiveTab ~= tab then
-			Tween(TabButton, {TextColor3 = Theme.TextDark}, 0.2)
+			Tween(TabButton, {BackgroundColor3 = Theme.Secondary}, 0.2)
 		end
 	end)
 	
@@ -716,14 +828,14 @@ end
 
 function UILibrary:SelectTab(tab)
 	if self.ActiveTab then
-		Tween(self.ActiveTab.Button, {TextColor3 = Theme.TextDark}, 0.2)
+		Tween(self.ActiveTab.Button, {BackgroundColor3 = Theme.Secondary, TextColor3 = Theme.TextDark}, 0.2)
 		Tween(self.ActiveTab.Indicator, {Size = UDim2.new(0, 3, 0, 0)}, 0.2)
 		self.ActiveTab.Content.Visible = false
 	end
 	
 	self.ActiveTab = tab
-	Tween(tab.Button, {TextColor3 = Theme.Text}, 0.2)
-	Tween(tab.Indicator, {Size = UDim2.new(0, 3, 0, 16)}, 0.2)
+	Tween(tab.Button, {BackgroundColor3 = Theme.Tertiary, TextColor3 = Theme.Text}, 0.2)
+	Tween(tab.Indicator, {Size = UDim2.new(0, 3, 0, 20)}, 0.2)
 	tab.Content.Visible = true
 end
 
@@ -743,7 +855,7 @@ function UILibrary:AddButton(tab, text, callback)
 	local ButtonFrame = Create("Frame", {
 		Name = text .. "Button",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 42),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -751,32 +863,41 @@ function UILibrary:AddButton(tab, text, callback)
 	local Button = Create("TextButton", {
 		Name = "Button",
 		Parent = ButtonFrame,
-		Size = UDim2.new(1, 0, 0, 32),
+		Size = UDim2.new(1, 0, 0, 36),
 		Position = UDim2.new(0, 0, 0, 3),
-		BackgroundColor3 = Theme.Tertiary,
+		BackgroundColor3 = Theme.Accent,
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamBold,
 		AutoButtonColor = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
+		Parent = Button
+	})
+	
+	local Gradient = Create("UIGradient", {
+		Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Theme.Accent),
+			ColorSequenceKeypoint.new(1, Theme.AccentLight)
+		}),
+		Rotation = 90,
 		Parent = Button
 	})
 	
 	Button.MouseEnter:Connect(function()
-		Tween(Button, {BackgroundColor3 = Theme.Line}, 0.2)
+		Tween(Button, {BackgroundColor3 = Theme.AccentLight}, 0.2)
 	end)
 	
 	Button.MouseLeave:Connect(function()
-		Tween(Button, {BackgroundColor3 = Theme.Tertiary}, 0.2)
+		Tween(Button, {BackgroundColor3 = Theme.Accent}, 0.2)
 	end)
 	
 	Button.MouseButton1Click:Connect(function()
-		Tween(Button, {Size = UDim2.new(0.98, 0, 0, 32)}, 0.05).Completed:Connect(function()
-			Tween(Button, {Size = UDim2.new(1, 0, 0, 32)}, 0.1)
+		Tween(Button, {Size = UDim2.new(0.98, 0, 0, 36)}, 0.08).Completed:Connect(function()
+			Tween(Button, {Size = UDim2.new(1, 0, 0, 36)}, 0.15)
 		end)
 		if callback then
 			callback()
@@ -791,7 +912,7 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local ToggleFrame = Create("Frame", {
 		Name = text .. "Toggle",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 42),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -799,20 +920,20 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = ToggleFrame,
-		Size = UDim2.new(1, -50, 1, 0),
+		Size = UDim2.new(1, -60, 1, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	local ToggleButton = Create("TextButton", {
 		Name = "Toggle",
 		Parent = ToggleFrame,
-		Size = UDim2.new(0, 40, 0, 20),
-		Position = UDim2.new(1, -45, 0.5, -10),
+		Size = UDim2.new(0, 44, 0, 24),
+		Position = UDim2.new(1, -50, 0.5, -12),
 		BackgroundColor3 = default and Theme.ToggleOn or Theme.ToggleOff,
 		Text = "",
 		AutoButtonColor = false
@@ -826,8 +947,8 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local Circle = Create("Frame", {
 		Name = "Circle",
 		Parent = ToggleButton,
-		Size = UDim2.new(0, 16, 0, 16),
-		Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
+		Size = UDim2.new(0, 20, 0, 20),
+		Position = default and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0
 	})
@@ -841,8 +962,8 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	
 	ToggleButton.MouseButton1Click:Connect(function()
 		enabled = not enabled
-		Tween(ToggleButton, {BackgroundColor3 = enabled and Theme.ToggleOn or Theme.ToggleOff}, 0.2)
-		Tween(Circle, {Position = enabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}, 0.2)
+		Tween(ToggleButton, {BackgroundColor3 = enabled and Theme.ToggleOn or Theme.ToggleOff}, 0.25)
+		Tween(Circle, {Position = enabled and UDim2.new(1, -22, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)}, 0.25)
 		if callback then
 			callback(enabled)
 		end
@@ -856,7 +977,7 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	local SliderFrame = Create("Frame", {
 		Name = text .. "Slider",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 50),
+		Size = UDim2.new(1, 0, 0, 56),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -864,33 +985,33 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = SliderFrame,
-		Size = UDim2.new(1, -50, 0, 18),
+		Size = UDim2.new(1, -60, 0, 20),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	local ValueLabel = Create("TextLabel", {
 		Name = "Value",
 		Parent = SliderFrame,
-		Size = UDim2.new(0, 50, 0, 18),
-		Position = UDim2.new(1, -50, 0, 0),
+		Size = UDim2.new(0, 50, 0, 20),
+		Position = UDim2.new(1, -55, 0, 0),
 		BackgroundTransparency = 1,
 		Text = tostring(default),
-		TextColor3 = Theme.TextDark,
+		TextColor3 = Theme.Accent,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Right
 	})
 	
 	local SliderBg = Create("Frame", {
 		Name = "SliderBg",
 		Parent = SliderFrame,
-		Size = UDim2.new(1, 0, 0, 6),
-		Position = UDim2.new(0, 0, 0, 30),
+		Size = UDim2.new(1, 0, 0, 8),
+		Position = UDim2.new(0, 0, 0, 34),
 		BackgroundColor3 = Theme.Tertiary,
 		BorderSizePixel = 0
 	})
@@ -904,7 +1025,7 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 		Name = "SliderFill",
 		Parent = SliderBg,
 		Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
-		BackgroundColor3 = Theme.Highlight,
+		BackgroundColor3 = Theme.Accent,
 		BorderSizePixel = 0
 	})
 	
@@ -916,8 +1037,8 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	local SliderKnob = Create("Frame", {
 		Name = "Knob",
 		Parent = SliderBg,
-		Size = UDim2.new(0, 12, 0, 12),
-		Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6),
+		Size = UDim2.new(0, 18, 0, 18),
+		Position = UDim2.new((default - min) / (max - min), -9, 0.5, -9),
 		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0,
 		ZIndex = 2
@@ -925,6 +1046,12 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	
 	Create("UICorner", {
 		CornerRadius = UDim.new(1, 0),
+		Parent = SliderKnob
+	})
+	
+	local KnobStroke = Create("UIStroke", {
+		Color = Theme.Accent,
+		Thickness = 3,
 		Parent = SliderKnob
 	})
 	
@@ -946,7 +1073,7 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 		local value = math.floor(min + (max - min) * pos)
 		
 		SliderFill.Size = UDim2.new(pos, 0, 1, 0)
-		SliderKnob.Position = UDim2.new(pos, -6, 0.5, -6)
+		SliderKnob.Position = UDim2.new(pos, -9, 0.5, -9)
 		ValueLabel.Text = tostring(value)
 		
 		if callback then
@@ -981,7 +1108,7 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 	local DropdownFrame = Create("Frame", {
 		Name = text .. "Dropdown",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 42),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren(),
 		ClipsDescendants = true
@@ -990,45 +1117,43 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 	local Button = Create("TextButton", {
 		Name = "Button",
 		Parent = DropdownFrame,
-		Size = UDim2.new(1, 0, 0, 32),
+		Size = UDim2.new(1, 0, 0, 36),
 		Position = UDim2.new(0, 0, 0, 3),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		AutoButtonColor = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = Button
 	})
 	
-	local Arrow = Create("TextLabel", {
+	local Arrow = Create("ImageLabel", {
 		Name = "Arrow",
 		Parent = Button,
-		Size = UDim2.new(0, 30, 1, 0),
-		Position = UDim2.new(1, -30, 0, 0),
+		Size = UDim2.new(0, 18, 0, 18),
+		Position = UDim2.new(1, -28, 0.5, -9),
 		BackgroundTransparency = 1,
-		Text = "v",
-		TextColor3 = Theme.TextDark,
-		TextSize = 12,
-		Font = Enum.Font.Gotham
+		Image = "rbxassetid://7072706663",
+		ImageColor3 = Theme.TextDark
 	})
 	
 	local OptionContainer = Create("Frame", {
 		Name = "Options",
 		Parent = DropdownFrame,
-		Size = UDim2.new(1, 0, 0, #options * 28),
-		Position = UDim2.new(0, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, #options * 32),
+		Position = UDim2.new(0, 0, 0, 42),
 		BackgroundColor3 = Theme.Tertiary,
 		BorderSizePixel = 0,
 		Visible = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = OptionContainer
 	})
 	
@@ -1038,15 +1163,26 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 		local OptionBtn = Create("TextButton", {
 			Name = option,
 			Parent = OptionContainer,
-			Size = UDim2.new(1, 0, 0, 28),
-			Position = UDim2.new(0, 0, 0, (i - 1) * 28),
+			Size = UDim2.new(1, 0, 0, 32),
+			Position = UDim2.new(0, 0, 0, (i - 1) * 32),
 			BackgroundColor3 = Theme.Tertiary,
 			Text = option,
 			TextColor3 = Theme.Text,
 			TextSize = 12,
-			Font = Enum.Font.Gotham,
+			Font = Enum.Font.GothamMedium,
 			AutoButtonColor = false
 		})
+		
+		if i < #options then
+			local Sep = Create("Frame", {
+				Name = "Sep",
+				Parent = OptionBtn,
+				Size = UDim2.new(1, -20, 0, 1),
+				Position = UDim2.new(0, 10, 1, -1),
+				BackgroundColor3 = Theme.Line,
+				BorderSizePixel = 0
+			})
+		end
 		
 		OptionBtn.MouseEnter:Connect(function()
 			Tween(OptionBtn, {BackgroundColor3 = Theme.Line}, 0.2)
@@ -1070,9 +1206,9 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 		Tween(Arrow, {Rotation = expanded and 180 or 0}, 0.2)
 		if expanded then
 			OptionContainer.Visible = true
-			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 38 + #options * 28)}, 0.2)
+			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 42 + #options * 32)}, 0.2)
 		else
-			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 38)}, 0.2).Completed:Connect(function()
+			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 42)}, 0.2).Completed:Connect(function()
 				OptionContainer.Visible = false
 			end)
 		end
@@ -1098,7 +1234,7 @@ function UILibrary:AddInput(tab, text, placeholder, callback)
 	local InputFrame = Create("Frame", {
 		Name = text .. "Input",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 60),
+		Size = UDim2.new(1, 0, 0, 64),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1106,47 +1242,53 @@ function UILibrary:AddInput(tab, text, placeholder, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = InputFrame,
-		Size = UDim2.new(1, 0, 0, 18),
+		Size = UDim2.new(1, 0, 0, 20),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	local InputBox = Create("TextBox", {
 		Name = "InputBox",
 		Parent = InputFrame,
-		Size = UDim2.new(1, 0, 0, 32),
-		Position = UDim2.new(0, 0, 0, 22),
+		Size = UDim2.new(1, 0, 0, 36),
+		Position = UDim2.new(0, 0, 0, 24),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = "",
 		PlaceholderText = placeholder or "Enter text...",
 		TextColor3 = Theme.Text,
 		PlaceholderColor3 = Theme.TextDark,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		ClearTextOnFocus = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = InputBox
 	})
 	
 	Create("UIPadding", {
 		Parent = InputBox,
-		PaddingLeft = UDim.new(0, 10),
-		PaddingRight = UDim.new(0, 10)
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12)
+	})
+	
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Line,
+		Thickness = 1,
+		Parent = InputBox
 	})
 	
 	InputBox.Focused:Connect(function()
-		Tween(InputBox, {BackgroundColor3 = Theme.Line}, 0.2)
+		Tween(Stroke, {Color = Theme.Accent}, 0.2)
 	end)
 	
 	InputBox.FocusLost:Connect(function(enterPressed)
-		Tween(InputBox, {BackgroundColor3 = Theme.Tertiary}, 0.2)
+		Tween(Stroke, {Color = Theme.Line}, 0.2)
 		if callback then
 			callback(InputBox.Text, enterPressed)
 		end
@@ -1160,7 +1302,7 @@ function UILibrary:AddKeybind(tab, text, defaultKey, callback)
 	local KeybindFrame = Create("Frame", {
 		Name = text .. "Keybind",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 42),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1168,30 +1310,36 @@ function UILibrary:AddKeybind(tab, text, defaultKey, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = KeybindFrame,
-		Size = UDim2.new(1, -70, 1, 0),
+		Size = UDim2.new(1, -80, 1, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	local KeyButton = Create("TextButton", {
 		Name = "KeyButton",
 		Parent = KeybindFrame,
-		Size = UDim2.new(0, 60, 0, 26),
-		Position = UDim2.new(1, -65, 0.5, -13),
+		Size = UDim2.new(0, 70, 0, 30),
+		Position = UDim2.new(1, -75, 0.5, -15),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = defaultKey and defaultKey.Name or "None",
 		TextColor3 = Theme.Text,
 		TextSize = 12,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamBold,
 		AutoButtonColor = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 6),
+		Parent = KeyButton
+	})
+	
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Line,
+		Thickness = 1,
 		Parent = KeyButton
 	})
 	
@@ -1201,14 +1349,14 @@ function UILibrary:AddKeybind(tab, text, defaultKey, callback)
 		if listening then return end
 		listening = true
 		KeyButton.Text = "..."
-		Tween(KeyButton, {BackgroundColor3 = Theme.Line}, 0.2)
+		Tween(Stroke, {Color = Theme.Accent}, 0.2)
 	end)
 	
 	UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		if listening and input.UserInputType == Enum.UserInputType.Keyboard then
 			listening = false
 			KeyButton.Text = input.KeyCode.Name
-			Tween(KeyButton, {BackgroundColor3 = Theme.Tertiary}, 0.2)
+			Tween(Stroke, {Color = Theme.Line}, 0.2)
 			if callback then
 				callback(input.KeyCode)
 			end
@@ -1235,7 +1383,7 @@ function UILibrary:AddLabel(tab, text)
 	local LabelFrame = Create("Frame", {
 		Name = text .. "Label",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 28),
+		Size = UDim2.new(1, 0, 0, 30),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1248,7 +1396,7 @@ function UILibrary:AddLabel(tab, text)
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
@@ -1260,7 +1408,7 @@ function UILibrary:AddSection(tab, text)
 	local SectionFrame = Create("Frame", {
 		Name = text .. "Section",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 30),
+		Size = UDim2.new(1, 0, 0, 36),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1269,10 +1417,10 @@ function UILibrary:AddSection(tab, text)
 		Name = "Label",
 		Parent = SectionFrame,
 		Size = UDim2.new(1, 0, 0, 20),
-		Position = UDim2.new(0, 0, 0, 5),
+		Position = UDim2.new(0, 0, 0, 8),
 		BackgroundTransparency = 1,
 		Text = text,
-		TextColor3 = Theme.TextDark,
+		TextColor3 = Theme.Accent,
 		TextSize = 11,
 		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Left
@@ -1281,9 +1429,9 @@ function UILibrary:AddSection(tab, text)
 	Create("Frame", {
 		Name = "Line",
 		Parent = SectionFrame,
-		Size = UDim2.new(1, 0, 0, 1),
-		Position = UDim2.new(0, 0, 1, -2),
-		BackgroundColor3 = Theme.Line,
+		Size = UDim2.new(1, 0, 0, 2),
+		Position = UDim2.new(0, 0, 1, -4),
+		BackgroundColor3 = Theme.Accent,
 		BorderSizePixel = 0
 	})
 	
@@ -1300,15 +1448,38 @@ function UILibrary:AddParagraph(tab, text)
 		AutomaticSize = Enum.AutomaticSize.Y
 	})
 	
+	local Container = Create("Frame", {
+		Name = "Container",
+		Parent = ParagraphFrame,
+		Size = UDim2.new(1, 0, 0, 0),
+		Position = UDim2.new(0, 0, 0, 4),
+		BackgroundColor3 = Theme.Tertiary,
+		BorderSizePixel = 0,
+		AutomaticSize = Enum.AutomaticSize.Y
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 8),
+		Parent = Container
+	})
+	
+	Create("UIPadding", {
+		Parent = Container,
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12),
+		PaddingTop = UDim.new(0, 10),
+		PaddingBottom = UDim.new(0, 10)
+	})
+	
 	local Label = Create("TextLabel", {
 		Name = "Label",
-		Parent = ParagraphFrame,
+		Parent = Container,
 		Size = UDim2.new(1, 0, 0, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.TextDark,
 		TextSize = 12,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true,
 		AutomaticSize = Enum.AutomaticSize.Y
@@ -1318,11 +1489,55 @@ function UILibrary:AddParagraph(tab, text)
 	return ParagraphFrame
 end
 
+function UILibrary:AddImage(tab, imageId, size)
+	size = size or {width = 200, height = 150}
+	
+	local ImageFrame = Create("Frame", {
+		Name = "Image",
+		Parent = tab.Content,
+		Size = UDim2.new(1, 0, 0, size.height + 10),
+		BackgroundTransparency = 1,
+		LayoutOrder = #tab.Content:GetChildren()
+	})
+	
+	local Container = Create("Frame", {
+		Name = "Container",
+		Parent = ImageFrame,
+		Size = UDim2.new(0, size.width, 0, size.height),
+		Position = UDim2.new(0.5, -(size.width / 2), 0, 5),
+		BackgroundColor3 = Theme.Tertiary,
+		BorderSizePixel = 0
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 10),
+		Parent = Container
+	})
+	
+	local ImageLabel = Create("ImageLabel", {
+		Name = "Image",
+		Parent = Container,
+		Size = UDim2.new(1, -8, 1, -8),
+		Position = UDim2.new(0, 4, 0, 4),
+		BackgroundTransparency = 1,
+		Image = imageId,
+		ScaleType = Enum.ScaleType.Fit
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 8),
+		Parent = ImageLabel
+	})
+	
+	self:CreateSeparator(tab.Content)
+	return ImageFrame
+end
+
 function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local ColorFrame = Create("Frame", {
 		Name = text .. "ColorPicker",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 42),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1335,30 +1550,36 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 		Text = text,
 		TextColor3 = Theme.Text,
 		TextSize = 13,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	local ColorButton = Create("TextButton", {
 		Name = "ColorButton",
 		Parent = ColorFrame,
-		Size = UDim2.new(0, 36, 0, 26),
-		Position = UDim2.new(1, -41, 0.5, -13),
+		Size = UDim2.new(0, 40, 0, 28),
+		Position = UDim2.new(1, -45, 0.5, -14),
 		BackgroundColor3 = defaultColor or Color3.fromRGB(255, 255, 255),
 		Text = "",
 		AutoButtonColor = false
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 6),
+		Parent = ColorButton
+	})
+	
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Line,
+		Thickness = 2,
 		Parent = ColorButton
 	})
 	
 	local PickerFrame = Create("Frame", {
 		Name = "Picker",
 		Parent = ColorFrame,
-		Size = UDim2.new(1, 0, 0, 140),
-		Position = UDim2.new(0, 0, 0, 42),
+		Size = UDim2.new(1, 0, 0, 160),
+		Position = UDim2.new(0, 0, 0, 46),
 		BackgroundColor3 = Theme.Tertiary,
 		BorderSizePixel = 0,
 		Visible = false,
@@ -1366,15 +1587,15 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 10),
 		Parent = PickerFrame
 	})
 	
 	local HueSlider = Create("Frame", {
 		Name = "Hue",
 		Parent = PickerFrame,
-		Size = UDim2.new(1, -20, 0, 18),
-		Position = UDim2.new(0, 10, 0, 10),
+		Size = UDim2.new(1, -24, 0, 20),
+		Position = UDim2.new(0, 12, 0, 12),
 		BackgroundColor3 = Color3.fromRGB(255, 0, 0),
 		BorderSizePixel = 0
 	})
@@ -1400,14 +1621,14 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local SaturationFrame = Create("Frame", {
 		Name = "Saturation",
 		Parent = PickerFrame,
-		Size = UDim2.new(1, -20, 0, 90),
-		Position = UDim2.new(0, 10, 0, 36),
+		Size = UDim2.new(1, -24, 0, 100),
+		Position = UDim2.new(0, 12, 0, 40),
 		BackgroundColor3 = defaultColor or Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = SaturationFrame
 	})
 	
@@ -1426,7 +1647,7 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = BlackGradient
 	})
 	
@@ -1444,7 +1665,7 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 4),
+		CornerRadius = UDim.new(0, 8),
 		Parent = WhiteGradient
 	})
 	
@@ -1454,9 +1675,11 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 		open = not open
 		PickerFrame.Visible = open
 		if open then
-			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 190)}, 0.2)
+			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 210)}, 0.2)
+			Tween(Stroke, {Color = Theme.Accent}, 0.2)
 		else
-			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 38)}, 0.2)
+			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 42)}, 0.2)
+			Tween(Stroke, {Color = Theme.Line}, 0.2)
 		end
 	end)
 	
@@ -1529,37 +1752,39 @@ function UILibrary:Notify(title, message, duration)
 	local NotifFrame = Create("Frame", {
 		Name = "Frame",
 		Parent = NotifGui,
-		Size = UDim2.new(0, 280, 0, 70),
-		Position = UDim2.new(1, 20, 1, -90 - (#self.Notifications * 80)),
+		Size = UDim2.new(0, 300, 0, 80),
+		Position = UDim2.new(1, 20, 1, -100 - (#self.Notifications * 90)),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
 	
 	Create("UICorner", {
-		CornerRadius = UDim.new(0, 6),
+		CornerRadius = UDim.new(0, 12),
 		Parent = NotifFrame
 	})
 	
-	local Shadow = Create("ImageLabel", {
-		Name = "Shadow",
+	local Stroke = Create("UIStroke", {
+		Color = Theme.Accent,
+		Thickness = 1,
+		Transparency = 0.5,
+		Parent = NotifFrame
+	})
+	
+	local Icon = Create("ImageLabel", {
+		Name = "Icon",
 		Parent = NotifFrame,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, 4),
-		Size = UDim2.new(1, 20, 1, 20),
+		Size = UDim2.new(0, 24, 0, 24),
+		Position = UDim2.new(0, 15, 0, 12),
 		BackgroundTransparency = 1,
-		Image = "rbxassetid://5554236805",
-		ImageColor3 = Color3.fromRGB(0, 0, 0),
-		ImageTransparency = 0.6,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = Rect.new(23, 23, 277, 277),
-		ZIndex = -1
+		Image = "rbxassetid://7072718367",
+		ImageColor3 = Theme.Accent
 	})
 	
 	local TitleLabel = Create("TextLabel", {
 		Name = "Title",
 		Parent = NotifFrame,
-		Size = UDim2.new(1, -20, 0, 22),
-		Position = UDim2.new(0, 15, 0, 8),
+		Size = UDim2.new(1, -60, 0, 20),
+		Position = UDim2.new(0, 48, 0, 12),
 		BackgroundTransparency = 1,
 		Text = title,
 		TextColor3 = Theme.Text,
@@ -1571,23 +1796,38 @@ function UILibrary:Notify(title, message, duration)
 	local MessageLabel = Create("TextLabel", {
 		Name = "Message",
 		Parent = NotifFrame,
-		Size = UDim2.new(1, -20, 0, 35),
-		Position = UDim2.new(0, 15, 0, 30),
+		Size = UDim2.new(1, -30, 0, 35),
+		Position = UDim2.new(0, 15, 0, 38),
 		BackgroundTransparency = 1,
 		Text = message,
 		TextColor3 = Theme.TextDark,
 		TextSize = 12,
-		Font = Enum.Font.Gotham,
+		Font = Enum.Font.GothamMedium,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true
 	})
 	
+	local ProgressBar = Create("Frame", {
+		Name = "Progress",
+		Parent = NotifFrame,
+		Size = UDim2.new(1, 0, 0, 3),
+		Position = UDim2.new(0, 0, 1, -3),
+		BackgroundColor3 = Theme.Accent,
+		BorderSizePixel = 0
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(0, 0),
+		Parent = ProgressBar
+	})
+	
 	table.insert(self.Notifications, NotifGui)
 	
-	Tween(NotifFrame, {Position = UDim2.new(1, -300, 1, -90 - ((#self.Notifications - 1) * 80))}, 0.4, Enum.EasingStyle.Back)
+	Tween(NotifFrame, {Position = UDim2.new(1, -320, 1, -100 - ((#self.Notifications - 1) * 90))}, 0.4, Enum.EasingStyle.Back)
+	Tween(ProgressBar, {Size = UDim2.new(0, 0, 0, 3)}, duration, Enum.EasingStyle.Linear)
 	
 	task.delay(duration, function()
-		Tween(NotifFrame, {Position = UDim2.new(1, 20, 1, -90 - ((#self.Notifications - 1) * 80))}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In).Completed:Connect(function()
+		Tween(NotifFrame, {Position = UDim2.new(1, 20, 1, -100 - ((#self.Notifications - 1) * 90))}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In).Completed:Connect(function()
 			NotifGui:Destroy()
 			for i, notif in ipairs(self.Notifications) do
 				if notif == NotifGui then
@@ -1598,7 +1838,7 @@ function UILibrary:Notify(title, message, duration)
 			for i, notif in ipairs(self.Notifications) do
 				local frame = notif:FindFirstChild("Frame")
 				if frame then
-					Tween(frame, {Position = UDim2.new(1, -300, 1, -90 - ((i - 1) * 80))}, 0.2)
+					Tween(frame, {Position = UDim2.new(1, -320, 1, -100 - ((i - 1) * 90))}, 0.2)
 				end
 			end
 		end)
