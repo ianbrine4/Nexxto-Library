@@ -1,4 +1,3 @@
--- loader.lua
 local UILibrary = {}
 UILibrary.__index = UILibrary
 
@@ -67,7 +66,9 @@ local Theme = {
 	TextDark = Color3.fromRGB(175, 175, 175),
 	Accent = Color3.fromRGB(255, 255, 255),
 	Line = Color3.fromRGB(50, 50, 50),
-	Highlight = Color3.fromRGB(255, 255, 255)
+	Highlight = Color3.fromRGB(255, 255, 255),
+	ToggleOn = Color3.fromRGB(0, 255, 128),
+	ToggleOff = Color3.fromRGB(60, 60, 60)
 }
 
 function UILibrary.new(config)
@@ -89,6 +90,7 @@ function UILibrary.new(config)
 	self:CreateDraggableIcon()
 	self:CreateConfirmationModal()
 	self:StartPingUpdater()
+	self:StartTimeUpdater()
 	
 	return self
 end
@@ -144,55 +146,53 @@ function UILibrary:CreateHeader()
 	local Header = Create("Frame", {
 		Name = "Header",
 		Parent = self.MainFrame,
-		Size = UDim2.new(1, 0, 0, 85),
+		Size = UDim2.new(1, 0, 0, 110),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
 	
+	local TopBar = Create("Frame", {
+		Name = "TopBar",
+		Parent = Header,
+		Size = UDim2.new(1, 0, 0, 50),
+		BackgroundTransparency = 1
+	})
+	
 	local TitleLabel = Create("TextLabel", {
 		Name = "Title",
-		Parent = Header,
-		Size = UDim2.new(1, -120, 0, 30),
+		Parent = TopBar,
+		Size = UDim2.new(1, -120, 0, 25),
 		Position = UDim2.new(0, 15, 0, 12),
 		BackgroundTransparency = 1,
 		Text = self.Title,
 		TextColor3 = Theme.Text,
-		TextSize = 22,
+		TextSize = 20,
 		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
-	local Separator = Create("Frame", {
-		Name = "Separator",
-		Parent = Header,
-		Size = UDim2.new(0, 200, 0, 1),
-		Position = UDim2.new(0, 15, 0, 45),
-		BackgroundColor3 = Theme.Line,
-		BorderSizePixel = 0
-	})
-	
 	local SubtitleLabel = Create("TextLabel", {
 		Name = "Subtitle",
-		Parent = Header,
-		Size = UDim2.new(1, -120, 0, 20),
-		Position = UDim2.new(0, 15, 0, 50),
+		Parent = TopBar,
+		Size = UDim2.new(1, -120, 0, 18),
+		Position = UDim2.new(0, 15, 0, 32),
 		BackgroundTransparency = 1,
 		Text = self.Subtitle,
 		TextColor3 = Theme.TextDark,
-		TextSize = 14,
+		TextSize = 12,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
 	self.PingLabel = Create("TextLabel", {
 		Name = "Ping",
-		Parent = Header,
+		Parent = TopBar,
 		Size = UDim2.new(0, 60, 0, 20),
-		Position = UDim2.new(1, -180, 0, 12),
+		Position = UDim2.new(1, -180, 0, 15),
 		BackgroundTransparency = 1,
 		Text = "0 ms",
 		TextColor3 = Theme.TextDark,
-		TextSize = 13,
+		TextSize = 12,
 		Font = Enum.Font.Gotham
 	})
 	
@@ -212,13 +212,13 @@ function UILibrary:CreateHeader()
 	
 	local HideButton = Create("TextButton", {
 		Name = "HideButton",
-		Parent = Header,
-		Size = UDim2.new(0, 30, 0, 30),
-		Position = UDim2.new(1, -75, 0, 10),
+		Parent = TopBar,
+		Size = UDim2.new(0, 28, 0, 28),
+		Position = UDim2.new(1, -70, 0, 11),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = "-",
 		TextColor3 = Theme.Text,
-		TextSize = 20,
+		TextSize = 18,
 		Font = Enum.Font.GothamBold,
 		AutoButtonColor = false
 	})
@@ -242,13 +242,13 @@ function UILibrary:CreateHeader()
 	
 	local CloseButton = Create("TextButton", {
 		Name = "CloseButton",
-		Parent = Header,
-		Size = UDim2.new(0, 30, 0, 30),
-		Position = UDim2.new(1, -40, 0, 10),
+		Parent = TopBar,
+		Size = UDim2.new(0, 28, 0, 28),
+		Position = UDim2.new(1, -38, 0, 11),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = "X",
 		TextColor3 = Theme.Text,
-		TextSize = 16,
+		TextSize = 14,
 		Font = Enum.Font.GothamBold,
 		AutoButtonColor = false
 	})
@@ -270,23 +270,19 @@ function UILibrary:CreateHeader()
 		self:ShowConfirmation()
 	end)
 	
-	self:CreateProfileSection(Header)
-end
-
-function UILibrary:CreateProfileSection(header)
-	local ProfileFrame = Create("Frame", {
-		Name = "Profile",
-		Parent = header,
-		Size = UDim2.new(0, 200, 0, 50),
-		Position = UDim2.new(0, 15, 0, 85),
+	local InfoBar = Create("Frame", {
+		Name = "InfoBar",
+		Parent = Header,
+		Size = UDim2.new(1, 0, 0, 60),
+		Position = UDim2.new(0, 0, 0, 50),
 		BackgroundTransparency = 1
 	})
 	
 	local AvatarImage = Create("ImageLabel", {
 		Name = "Avatar",
-		Parent = ProfileFrame,
+		Parent = InfoBar,
 		Size = UDim2.new(0, 40, 0, 40),
-		Position = UDim2.new(0, 0, 0, 5),
+		Position = UDim2.new(0, 15, 0, 10),
 		BackgroundColor3 = Theme.Tertiary,
 		Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48),
 		BorderSizePixel = 0
@@ -299,26 +295,26 @@ function UILibrary:CreateProfileSection(header)
 	
 	local UsernameLabel = Create("TextLabel", {
 		Name = "Username",
-		Parent = ProfileFrame,
-		Size = UDim2.new(1, -50, 0, 20),
-		Position = UDim2.new(0, 50, 0, 5),
+		Parent = InfoBar,
+		Size = UDim2.new(0, 200, 0, 20),
+		Position = UDim2.new(0, 65, 0, 10),
 		BackgroundTransparency = 1,
 		Text = LocalPlayer.DisplayName,
 		TextColor3 = Theme.Text,
-		TextSize = 15,
+		TextSize = 14,
 		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
 	
-	local DateLabel = Create("TextLabel", {
-		Name = "Date",
-		Parent = ProfileFrame,
-		Size = UDim2.new(1, -50, 0, 15),
-		Position = UDim2.new(0, 50, 0, 25),
+	self.DateTimeLabel = Create("TextLabel", {
+		Name = "DateTime",
+		Parent = InfoBar,
+		Size = UDim2.new(0, 200, 0, 15),
+		Position = UDim2.new(0, 65, 0, 32),
 		BackgroundTransparency = 1,
-		Text = os.date("%B %d, %Y"),
+		Text = "",
 		TextColor3 = Theme.TextDark,
-		TextSize = 12,
+		TextSize = 11,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -328,8 +324,8 @@ function UILibrary:CreateSidebar()
 	self.Sidebar = Create("Frame", {
 		Name = "Sidebar",
 		Parent = self.MainFrame,
-		Size = UDim2.new(0, 140, 1, -145),
-		Position = UDim2.new(0, 0, 0, 145),
+		Size = UDim2.new(0, 140, 1, -110),
+		Position = UDim2.new(0, 0, 0, 110),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
@@ -356,7 +352,7 @@ function UILibrary:CreateSidebar()
 	Create("UIListLayout", {
 		Parent = self.TabContainer,
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 2)
+		Padding = UDim.new(0, 1)
 	})
 	
 	Create("UIPadding", {
@@ -370,8 +366,8 @@ function UILibrary:CreateContentArea()
 	self.ContentFrame = Create("Frame", {
 		Name = "Content",
 		Parent = self.MainFrame,
-		Size = UDim2.new(1, -140, 1, -145),
-		Position = UDim2.new(0, 140, 0, 145),
+		Size = UDim2.new(1, -140, 1, -110),
+		Position = UDim2.new(0, 140, 0, 110),
 		BackgroundColor3 = Theme.Background,
 		BorderSizePixel = 0,
 		ClipsDescendants = true
@@ -618,6 +614,17 @@ function UILibrary:StartPingUpdater()
 	end)
 end
 
+function UILibrary:StartTimeUpdater()
+	task.spawn(function()
+		while self.ScreenGui and self.ScreenGui.Parent do
+			local dateStr = os.date("%B %d, %Y")
+			local timeStr = os.date("%I:%M %p")
+			self.DateTimeLabel.Text = dateStr .. " | " .. timeStr
+			task.wait(1)
+		end
+	end)
+end
+
 function UILibrary:AddTab(name)
 	local tab = {}
 	tab.Name = name
@@ -627,11 +634,11 @@ function UILibrary:AddTab(name)
 	local TabButton = Create("TextButton", {
 		Name = name .. "Tab",
 		Parent = self.TabContainer,
-		Size = UDim2.new(1, -10, 0, 35),
+		Size = UDim2.new(1, -5, 0, 32),
 		BackgroundColor3 = Theme.Secondary,
 		Text = name,
 		TextColor3 = Theme.TextDark,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		AutoButtonColor = false,
 		LayoutOrder = #self.Tabs
@@ -639,14 +646,14 @@ function UILibrary:AddTab(name)
 	
 	Create("UIPadding", {
 		Parent = TabButton,
-		PaddingLeft = UDim.new(0, 15)
+		PaddingLeft = UDim.new(0, 12)
 	})
 	
 	local Indicator = Create("Frame", {
 		Name = "Indicator",
 		Parent = TabButton,
 		Size = UDim2.new(0, 3, 0, 0),
-		Position = UDim2.new(0, -5, 0.5, 0),
+		Position = UDim2.new(0, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0, 0.5),
 		BackgroundColor3 = Theme.Highlight,
 		BorderSizePixel = 0
@@ -668,10 +675,10 @@ function UILibrary:AddTab(name)
 	
 	Create("UIPadding", {
 		Parent = Content,
-		PaddingLeft = UDim.new(0, 15),
-		PaddingRight = UDim.new(0, 15),
-		PaddingTop = UDim.new(0, 15),
-		PaddingBottom = UDim.new(0, 15)
+		PaddingLeft = UDim.new(0, 12),
+		PaddingRight = UDim.new(0, 12),
+		PaddingTop = UDim.new(0, 10),
+		PaddingBottom = UDim.new(0, 10)
 	})
 	
 	Create("UIListLayout", {
@@ -716,7 +723,7 @@ function UILibrary:SelectTab(tab)
 	
 	self.ActiveTab = tab
 	Tween(tab.Button, {TextColor3 = Theme.Text}, 0.2)
-	Tween(tab.Indicator, {Size = UDim2.new(0, 3, 0, 20)}, 0.2)
+	Tween(tab.Indicator, {Size = UDim2.new(0, 3, 0, 16)}, 0.2)
 	tab.Content.Visible = true
 end
 
@@ -736,7 +743,7 @@ function UILibrary:AddButton(tab, text, callback)
 	local ButtonFrame = Create("Frame", {
 		Name = text .. "Button",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 38),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -744,12 +751,12 @@ function UILibrary:AddButton(tab, text, callback)
 	local Button = Create("TextButton", {
 		Name = "Button",
 		Parent = ButtonFrame,
-		Size = UDim2.new(1, 0, 0, 35),
-		Position = UDim2.new(0, 0, 0, 2),
+		Size = UDim2.new(1, 0, 0, 32),
+		Position = UDim2.new(0, 0, 0, 3),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		AutoButtonColor = false
 	})
@@ -768,8 +775,8 @@ function UILibrary:AddButton(tab, text, callback)
 	end)
 	
 	Button.MouseButton1Click:Connect(function()
-		Tween(Button, {Size = UDim2.new(0.98, 0, 0, 35)}, 0.05).Completed:Connect(function()
-			Tween(Button, {Size = UDim2.new(1, 0, 0, 35)}, 0.1)
+		Tween(Button, {Size = UDim2.new(0.98, 0, 0, 32)}, 0.05).Completed:Connect(function()
+			Tween(Button, {Size = UDim2.new(1, 0, 0, 32)}, 0.1)
 		end)
 		if callback then
 			callback()
@@ -784,7 +791,7 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local ToggleFrame = Create("Frame", {
 		Name = text .. "Toggle",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 38),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -792,11 +799,11 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = ToggleFrame,
-		Size = UDim2.new(1, -60, 1, 0),
+		Size = UDim2.new(1, -50, 1, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -804,9 +811,9 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local ToggleButton = Create("TextButton", {
 		Name = "Toggle",
 		Parent = ToggleFrame,
-		Size = UDim2.new(0, 50, 0, 25),
-		Position = UDim2.new(1, -55, 0.5, -12),
-		BackgroundColor3 = default and Theme.Highlight or Theme.Tertiary,
+		Size = UDim2.new(0, 40, 0, 20),
+		Position = UDim2.new(1, -45, 0.5, -10),
+		BackgroundColor3 = default and Theme.ToggleOn or Theme.ToggleOff,
 		Text = "",
 		AutoButtonColor = false
 	})
@@ -819,9 +826,9 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	local Circle = Create("Frame", {
 		Name = "Circle",
 		Parent = ToggleButton,
-		Size = UDim2.new(0, 21, 0, 21),
-		Position = default and UDim2.new(1, -23, 0.5, -10) or UDim2.new(0, 2, 0.5, -10),
-		BackgroundColor3 = Theme.Text,
+		Size = UDim2.new(0, 16, 0, 16),
+		Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0
 	})
 	
@@ -834,8 +841,8 @@ function UILibrary:AddToggle(tab, text, default, callback)
 	
 	ToggleButton.MouseButton1Click:Connect(function()
 		enabled = not enabled
-		Tween(ToggleButton, {BackgroundColor3 = enabled and Theme.Highlight or Theme.Tertiary}, 0.2)
-		Tween(Circle, {Position = enabled and UDim2.new(1, -23, 0.5, -10) or UDim2.new(0, 2, 0.5, -10)}, 0.2)
+		Tween(ToggleButton, {BackgroundColor3 = enabled and Theme.ToggleOn or Theme.ToggleOff}, 0.2)
+		Tween(Circle, {Position = enabled and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)}, 0.2)
 		if callback then
 			callback(enabled)
 		end
@@ -849,7 +856,7 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	local SliderFrame = Create("Frame", {
 		Name = text .. "Slider",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 55),
+		Size = UDim2.new(1, 0, 0, 50),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -857,11 +864,11 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = SliderFrame,
-		Size = UDim2.new(1, -50, 0, 20),
+		Size = UDim2.new(1, -50, 0, 18),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -869,12 +876,12 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 	local ValueLabel = Create("TextLabel", {
 		Name = "Value",
 		Parent = SliderFrame,
-		Size = UDim2.new(0, 50, 0, 20),
+		Size = UDim2.new(0, 50, 0, 18),
 		Position = UDim2.new(1, -50, 0, 0),
 		BackgroundTransparency = 1,
 		Text = tostring(default),
 		TextColor3 = Theme.TextDark,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Right
 	})
@@ -883,7 +890,7 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 		Name = "SliderBg",
 		Parent = SliderFrame,
 		Size = UDim2.new(1, 0, 0, 6),
-		Position = UDim2.new(0, 0, 0, 35),
+		Position = UDim2.new(0, 0, 0, 30),
 		BackgroundColor3 = Theme.Tertiary,
 		BorderSizePixel = 0
 	})
@@ -906,42 +913,62 @@ function UILibrary:AddSlider(tab, text, min, max, default, callback)
 		Parent = SliderFill
 	})
 	
+	local SliderKnob = Create("Frame", {
+		Name = "Knob",
+		Parent = SliderBg,
+		Size = UDim2.new(0, 12, 0, 12),
+		Position = UDim2.new((default - min) / (max - min), -6, 0.5, -6),
+		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+		BorderSizePixel = 0,
+		ZIndex = 2
+	})
+	
+	Create("UICorner", {
+		CornerRadius = UDim.new(1, 0),
+		Parent = SliderKnob
+	})
+	
 	local SliderButton = Create("TextButton", {
 		Name = "SliderButton",
 		Parent = SliderBg,
-		Size = UDim2.new(1, 0, 1, 10),
-		Position = UDim2.new(0, 0, 0, -5),
+		Size = UDim2.new(1, 0, 1, 20),
+		Position = UDim2.new(0, 0, 0, -10),
 		BackgroundTransparency = 1,
-		Text = ""
+		Text = "",
+		ZIndex = 3
 	})
 	
 	local dragging = false
 	
 	local function UpdateSlider(input)
-		local pos = math.clamp((input.Position.X - SliderBg.AbsolutePosition.X) / SliderBg.AbsoluteSize.X, 0, 1)
+		local relativeX = input.Position.X - SliderBg.AbsolutePosition.X
+		local pos = math.clamp(relativeX / SliderBg.AbsoluteSize.X, 0, 1)
 		local value = math.floor(min + (max - min) * pos)
+		
 		SliderFill.Size = UDim2.new(pos, 0, 1, 0)
+		SliderKnob.Position = UDim2.new(pos, -6, 0.5, -6)
 		ValueLabel.Text = tostring(value)
+		
 		if callback then
 			callback(value)
 		end
 	end
 	
 	SliderButton.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = true
 			UpdateSlider(input)
 		end
 	end)
 	
 	UserInputService.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
 			dragging = false
 		end
 	end)
 	
 	UserInputService.InputChanged:Connect(function(input)
-		if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
 			UpdateSlider(input)
 		end
 	end)
@@ -954,7 +981,7 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 	local DropdownFrame = Create("Frame", {
 		Name = text .. "Dropdown",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 38),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren(),
 		ClipsDescendants = true
@@ -963,12 +990,12 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 	local Button = Create("TextButton", {
 		Name = "Button",
 		Parent = DropdownFrame,
-		Size = UDim2.new(1, 0, 0, 35),
-		Position = UDim2.new(0, 0, 0, 2),
+		Size = UDim2.new(1, 0, 0, 32),
+		Position = UDim2.new(0, 0, 0, 3),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		AutoButtonColor = false
 	})
@@ -986,15 +1013,15 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 		BackgroundTransparency = 1,
 		Text = "v",
 		TextColor3 = Theme.TextDark,
-		TextSize = 14,
+		TextSize = 12,
 		Font = Enum.Font.Gotham
 	})
 	
 	local OptionContainer = Create("Frame", {
 		Name = "Options",
 		Parent = DropdownFrame,
-		Size = UDim2.new(1, 0, 0, #options * 30),
-		Position = UDim2.new(0, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, #options * 28),
+		Position = UDim2.new(0, 0, 0, 38),
 		BackgroundColor3 = Theme.Tertiary,
 		BorderSizePixel = 0,
 		Visible = false
@@ -1011,12 +1038,12 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 		local OptionBtn = Create("TextButton", {
 			Name = option,
 			Parent = OptionContainer,
-			Size = UDim2.new(1, 0, 0, 30),
-			Position = UDim2.new(0, 0, 0, (i - 1) * 30),
+			Size = UDim2.new(1, 0, 0, 28),
+			Position = UDim2.new(0, 0, 0, (i - 1) * 28),
 			BackgroundColor3 = Theme.Tertiary,
 			Text = option,
 			TextColor3 = Theme.Text,
-			TextSize = 13,
+			TextSize = 12,
 			Font = Enum.Font.Gotham,
 			AutoButtonColor = false
 		})
@@ -1043,9 +1070,9 @@ function UILibrary:AddDropdown(tab, text, options, callback)
 		Tween(Arrow, {Rotation = expanded and 180 or 0}, 0.2)
 		if expanded then
 			OptionContainer.Visible = true
-			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 40 + #options * 30)}, 0.2)
+			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 38 + #options * 28)}, 0.2)
 		else
-			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.2).Completed:Connect(function()
+			Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 38)}, 0.2).Completed:Connect(function()
 				OptionContainer.Visible = false
 			end)
 		end
@@ -1071,7 +1098,7 @@ function UILibrary:AddInput(tab, text, placeholder, callback)
 	local InputFrame = Create("Frame", {
 		Name = text .. "Input",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 65),
+		Size = UDim2.new(1, 0, 0, 60),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1079,11 +1106,11 @@ function UILibrary:AddInput(tab, text, placeholder, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = InputFrame,
-		Size = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0, 18),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -1091,14 +1118,14 @@ function UILibrary:AddInput(tab, text, placeholder, callback)
 	local InputBox = Create("TextBox", {
 		Name = "InputBox",
 		Parent = InputFrame,
-		Size = UDim2.new(1, 0, 0, 35),
-		Position = UDim2.new(0, 0, 0, 25),
+		Size = UDim2.new(1, 0, 0, 32),
+		Position = UDim2.new(0, 0, 0, 22),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = "",
 		PlaceholderText = placeholder or "Enter text...",
 		TextColor3 = Theme.Text,
 		PlaceholderColor3 = Theme.TextDark,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		ClearTextOnFocus = false
 	})
@@ -1133,7 +1160,7 @@ function UILibrary:AddKeybind(tab, text, defaultKey, callback)
 	local KeybindFrame = Create("Frame", {
 		Name = text .. "Keybind",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 38),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1141,11 +1168,11 @@ function UILibrary:AddKeybind(tab, text, defaultKey, callback)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = KeybindFrame,
-		Size = UDim2.new(1, -80, 1, 0),
+		Size = UDim2.new(1, -70, 1, 0),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -1153,12 +1180,12 @@ function UILibrary:AddKeybind(tab, text, defaultKey, callback)
 	local KeyButton = Create("TextButton", {
 		Name = "KeyButton",
 		Parent = KeybindFrame,
-		Size = UDim2.new(0, 70, 0, 30),
-		Position = UDim2.new(1, -75, 0.5, -15),
+		Size = UDim2.new(0, 60, 0, 26),
+		Position = UDim2.new(1, -65, 0.5, -13),
 		BackgroundColor3 = Theme.Tertiary,
 		Text = defaultKey and defaultKey.Name or "None",
 		TextColor3 = Theme.Text,
-		TextSize = 13,
+		TextSize = 12,
 		Font = Enum.Font.Gotham,
 		AutoButtonColor = false
 	})
@@ -1208,7 +1235,7 @@ function UILibrary:AddLabel(tab, text)
 	local LabelFrame = Create("Frame", {
 		Name = text .. "Label",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 30),
+		Size = UDim2.new(1, 0, 0, 28),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1220,7 +1247,7 @@ function UILibrary:AddLabel(tab, text)
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -1233,7 +1260,7 @@ function UILibrary:AddSection(tab, text)
 	local SectionFrame = Create("Frame", {
 		Name = text .. "Section",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 35),
+		Size = UDim2.new(1, 0, 0, 30),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1241,11 +1268,12 @@ function UILibrary:AddSection(tab, text)
 	local Label = Create("TextLabel", {
 		Name = "Label",
 		Parent = SectionFrame,
-		Size = UDim2.new(1, 0, 0, 25),
+		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.new(0, 0, 0, 5),
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.TextDark,
-		TextSize = 12,
+		TextSize = 11,
 		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -1254,7 +1282,7 @@ function UILibrary:AddSection(tab, text)
 		Name = "Line",
 		Parent = SectionFrame,
 		Size = UDim2.new(1, 0, 0, 1),
-		Position = UDim2.new(0, 0, 1, -5),
+		Position = UDim2.new(0, 0, 1, -2),
 		BackgroundColor3 = Theme.Line,
 		BorderSizePixel = 0
 	})
@@ -1279,7 +1307,7 @@ function UILibrary:AddParagraph(tab, text)
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.TextDark,
-		TextSize = 13,
+		TextSize = 12,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true,
@@ -1294,7 +1322,7 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local ColorFrame = Create("Frame", {
 		Name = text .. "ColorPicker",
 		Parent = tab.Content,
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 38),
 		BackgroundTransparency = 1,
 		LayoutOrder = #tab.Content:GetChildren()
 	})
@@ -1306,7 +1334,7 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 		BackgroundTransparency = 1,
 		Text = text,
 		TextColor3 = Theme.Text,
-		TextSize = 14,
+		TextSize = 13,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -1314,8 +1342,8 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local ColorButton = Create("TextButton", {
 		Name = "ColorButton",
 		Parent = ColorFrame,
-		Size = UDim2.new(0, 40, 0, 30),
-		Position = UDim2.new(1, -45, 0.5, -15),
+		Size = UDim2.new(0, 36, 0, 26),
+		Position = UDim2.new(1, -41, 0.5, -13),
 		BackgroundColor3 = defaultColor or Color3.fromRGB(255, 255, 255),
 		Text = "",
 		AutoButtonColor = false
@@ -1329,8 +1357,8 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local PickerFrame = Create("Frame", {
 		Name = "Picker",
 		Parent = ColorFrame,
-		Size = UDim2.new(1, 0, 0, 150),
-		Position = UDim2.new(0, 0, 0, 45),
+		Size = UDim2.new(1, 0, 0, 140),
+		Position = UDim2.new(0, 0, 0, 42),
 		BackgroundColor3 = Theme.Tertiary,
 		BorderSizePixel = 0,
 		Visible = false,
@@ -1345,7 +1373,7 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local HueSlider = Create("Frame", {
 		Name = "Hue",
 		Parent = PickerFrame,
-		Size = UDim2.new(1, -20, 0, 20),
+		Size = UDim2.new(1, -20, 0, 18),
 		Position = UDim2.new(0, 10, 0, 10),
 		BackgroundColor3 = Color3.fromRGB(255, 0, 0),
 		BorderSizePixel = 0
@@ -1372,8 +1400,8 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 	local SaturationFrame = Create("Frame", {
 		Name = "Saturation",
 		Parent = PickerFrame,
-		Size = UDim2.new(1, -20, 0, 100),
-		Position = UDim2.new(0, 10, 0, 40),
+		Size = UDim2.new(1, -20, 0, 90),
+		Position = UDim2.new(0, 10, 0, 36),
 		BackgroundColor3 = defaultColor or Color3.fromRGB(255, 255, 255),
 		BorderSizePixel = 0
 	})
@@ -1426,9 +1454,9 @@ function UILibrary:AddColorPicker(tab, text, defaultColor, callback)
 		open = not open
 		PickerFrame.Visible = open
 		if open then
-			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 200)}, 0.2)
+			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 190)}, 0.2)
 		else
-			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.2)
+			Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 38)}, 0.2)
 		end
 	end)
 	
@@ -1501,8 +1529,8 @@ function UILibrary:Notify(title, message, duration)
 	local NotifFrame = Create("Frame", {
 		Name = "Frame",
 		Parent = NotifGui,
-		Size = UDim2.new(0, 300, 0, 80),
-		Position = UDim2.new(1, 20, 1, -100 - (#self.Notifications * 90)),
+		Size = UDim2.new(0, 280, 0, 70),
+		Position = UDim2.new(1, 20, 1, -90 - (#self.Notifications * 80)),
 		BackgroundColor3 = Theme.Secondary,
 		BorderSizePixel = 0
 	})
@@ -1530,12 +1558,12 @@ function UILibrary:Notify(title, message, duration)
 	local TitleLabel = Create("TextLabel", {
 		Name = "Title",
 		Parent = NotifFrame,
-		Size = UDim2.new(1, -20, 0, 25),
-		Position = UDim2.new(0, 15, 0, 10),
+		Size = UDim2.new(1, -20, 0, 22),
+		Position = UDim2.new(0, 15, 0, 8),
 		BackgroundTransparency = 1,
 		Text = title,
 		TextColor3 = Theme.Text,
-		TextSize = 16,
+		TextSize = 14,
 		Font = Enum.Font.GothamBold,
 		TextXAlignment = Enum.TextXAlignment.Left
 	})
@@ -1543,12 +1571,12 @@ function UILibrary:Notify(title, message, duration)
 	local MessageLabel = Create("TextLabel", {
 		Name = "Message",
 		Parent = NotifFrame,
-		Size = UDim2.new(1, -20, 0, 40),
-		Position = UDim2.new(0, 15, 0, 35),
+		Size = UDim2.new(1, -20, 0, 35),
+		Position = UDim2.new(0, 15, 0, 30),
 		BackgroundTransparency = 1,
 		Text = message,
 		TextColor3 = Theme.TextDark,
-		TextSize = 13,
+		TextSize = 12,
 		Font = Enum.Font.Gotham,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextWrapped = true
@@ -1556,10 +1584,10 @@ function UILibrary:Notify(title, message, duration)
 	
 	table.insert(self.Notifications, NotifGui)
 	
-	Tween(NotifFrame, {Position = UDim2.new(1, -320, 1, -100 - ((#self.Notifications - 1) * 90))}, 0.4, Enum.EasingStyle.Back)
+	Tween(NotifFrame, {Position = UDim2.new(1, -300, 1, -90 - ((#self.Notifications - 1) * 80))}, 0.4, Enum.EasingStyle.Back)
 	
 	task.delay(duration, function()
-		Tween(NotifFrame, {Position = UDim2.new(1, 20, 1, -100 - ((#self.Notifications - 1) * 90))}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In).Completed:Connect(function()
+		Tween(NotifFrame, {Position = UDim2.new(1, 20, 1, -90 - ((#self.Notifications - 1) * 80))}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In).Completed:Connect(function()
 			NotifGui:Destroy()
 			for i, notif in ipairs(self.Notifications) do
 				if notif == NotifGui then
@@ -1570,7 +1598,7 @@ function UILibrary:Notify(title, message, duration)
 			for i, notif in ipairs(self.Notifications) do
 				local frame = notif:FindFirstChild("Frame")
 				if frame then
-					Tween(frame, {Position = UDim2.new(1, -320, 1, -100 - ((i - 1) * 90))}, 0.2)
+					Tween(frame, {Position = UDim2.new(1, -300, 1, -90 - ((i - 1) * 80))}, 0.2)
 				end
 			end
 		end)
