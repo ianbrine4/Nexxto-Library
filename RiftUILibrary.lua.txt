@@ -1,1581 +1,1735 @@
-local Rift = {}
+local RiftUI = {}
+
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+local TextService = game:GetService("TextService")
 
-local Config = {
-    AnimationDuration = 0.3,
-    FastDuration = 0.15,
-    EasingStyle = Enum.EasingStyle.Quad,
-    EasingDirection = Enum.EasingDirection.Out,
-    SpringEasing = Enum.EasingStyle.Back,
-    Colors = {
-        Background = Color3.fromRGB(25, 25, 25),
-        DarkBackground = Color3.fromRGB(20, 20, 20),
-        LightBackground = Color3.fromRGB(35, 35, 35),
-        LighterBackground = Color3.fromRGB(45, 45, 45),
-        Text = Color3.fromRGB(255, 255, 255),
-        SubText = Color3.fromRGB(180, 180, 180),
-        Accent = Color3.fromRGB(255, 255, 255),
-        Success = Color3.fromRGB(0, 255, 128),
-        Error = Color3.fromRGB(255, 85, 85),
-        ToggleOn = Color3.fromRGB(0, 255, 128),
-        ToggleOff = Color3.fromRGB(80, 80, 80),
-        Stroke = Color3.fromRGB(255, 255, 255)
-    }
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+RiftUI.Theme = {
+	Background = Color3.fromRGB(30, 30, 35),
+	BackgroundSecondary = Color3.fromRGB(40, 40, 45),
+	BackgroundTertiary = Color3.fromRGB(50, 50, 55),
+	Text = Color3.fromRGB(255, 255, 255),
+	TextSecondary = Color3.fromRGB(180, 180, 180),
+	TextDark = Color3.fromRGB(120, 120, 120),
+	Accent = Color3.fromRGB(255, 255, 255),
+	Success = Color3.fromRGB(80, 200, 120),
+	Error = Color3.fromRGB(200, 80, 80),
+	Warning = Color3.fromRGB(255, 180, 80),
+	Stroke = Color3.fromRGB(255, 255, 255),
+	Inactive = Color3.fromRGB(100, 100, 100),
+	Indicator = Color3.fromRGB(255, 255, 255)
 }
 
-local function Create(instanceType, properties)
-    local instance = Instance.new(instanceType)
-    for prop, value in pairs(properties or {}) do
-        instance[prop] = value
-    end
-    return instance
+RiftUI.Animation = {
+	Fast = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	Normal = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	Smooth = TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	Slow = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	Elastic = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+	Spring = TweenInfo.new(0.5, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out)
+}
+
+local function Create(className, properties)
+	local instance = Instance.new(className)
+	for property, value in pairs(properties or {}) do
+		instance[property] = value
+	end
+	return instance
 end
 
-local function Tween(instance, properties, duration, easingStyle, easingDirection)
-    duration = duration or Config.AnimationDuration
-    easingStyle = easingStyle or Config.EasingStyle
-    easingDirection = easingDirection or Config.EasingDirection
-    local tweenInfo = TweenInfo.new(duration, easingStyle, easingDirection)
-    local tween = TweenService:Create(instance, tweenInfo, properties)
-    tween:Play()
-    return tween
+local function Tween(instance, tweenInfo, properties)
+	local tween = TweenService:Create(instance, tweenInfo, properties)
+	tween:Play()
+	return tween
 end
 
-local function CreateStroke(parent, color, thickness)
-    return Create("UIStroke", {
-        Parent = parent,
-        Color = color or Config.Colors.Stroke,
-        Thickness = thickness or 1,
-        Transparency = 0.8
-    })
+local function SetStroke(instance, color, thickness)
+	local stroke = Create("UIStroke", {
+		Color = color or RiftUI.Theme.Stroke,
+		Thickness = thickness or 1,
+		Parent = instance
+	})
+	return stroke
 end
 
-local function CreateCorner(parent, radius)
-    return Create("UICorner", {
-        Parent = parent,
-        CornerRadius = UDim.new(0, radius or 6)
-    })
+local function SetCorner(instance, radius)
+	local corner = Create("UICorner", {
+		CornerRadius = radius or UDim.new(0, 6),
+		Parent = instance
+	})
+	return corner
 end
 
-local function CreateShadow(parent, size)
-    return Create("ImageLabel", {
-        Parent = parent,
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://5554236805",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.6,
-        Position = UDim2.new(0, -size/2, 0, -size/2),
-        Size = UDim2.new(1, size, 1, size),
-        ZIndex = parent.ZIndex - 1
-    })
+local function SetPadding(instance, padding)
+	local pad = Create("UIPadding", {
+		PaddingLeft = UDim.new(0, padding or 10),
+		PaddingRight = UDim.new(0, padding or 10),
+		PaddingTop = UDim.new(0, padding or 10),
+		PaddingBottom = UDim.new(0, padding or 10),
+		Parent = instance
+	})
+	return pad
 end
 
-Rift.Notifications = {}
-
-function Rift:Notify(options)
-    options = options or {}
-    local text = options.text or "Notification"
-    local duration = options.duration or 3
-    local position = options.position or "top-right"
-    local icon = options.icon or ""
-    
-    if not self.NotificationGui then
-        self.NotificationGui = Create("ScreenGui", {
-            Name = "RiftNotifications",
-            Parent = game.CoreGui,
-            ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-        })
-    end
-    
-    local positions = {
-        ["top-right"] = UDim2.new(1, -300, 0, 20),
-        ["top-left"] = UDim2.new(0, 20, 0, 20),
-        ["bottom-right"] = UDim2.new(1, -300, 1, -90),
-        ["bottom-left"] = UDim2.new(0, 20, 1, -90)
-    }
-    
-    local notifFrame = Create("Frame", {
-        Parent = self.NotificationGui,
-        BackgroundColor3 = Config.Colors.Background,
-        BorderSizePixel = 0,
-        Size = UDim2.new(0, 280, 0, 70),
-        Position = positions[position] + UDim2.new(0, 0, 0, -20),
-        BackgroundTransparency = 1,
-        ClipsDescendants = true,
-        ZIndex = 100
-    })
-    CreateCorner(notifFrame, 8)
-    CreateStroke(notifFrame)
-    CreateShadow(notifFrame, 20)
-    
-    local iconLabel = Create("ImageLabel", {
-        Parent = notifFrame,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(0, 40, 0, 40),
-        Position = UDim2.new(0, 15, 0.5, -20),
-        Image = icon,
-        ImageTransparency = 1,
-        ZIndex = 101
-    })
-    
-    local textLabel = Create("TextLabel", {
-        Parent = notifFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, icon ~= "" and 65 or 15, 0, 0),
-        Size = UDim2.new(1, icon ~= "" and -80 or -30, 1, 0),
-        Font = Enum.Font.GothamMedium,
-        Text = text,
-        TextColor3 = Config.Colors.Text,
-        TextSize = 14,
-        TextWrapped = true,
-        TextTransparency = 1,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 101
-    })
-    
-    local closeBtn = Create("TextButton", {
-        Parent = notifFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -30, 0, 5),
-        Size = UDim2.new(0, 25, 0, 25),
-        Font = Enum.Font.GothamBold,
-        Text = "×",
-        TextColor3 = Config.Colors.SubText,
-        TextSize = 20,
-        ZIndex = 102
-    })
-    
-    local progressBar = Create("Frame", {
-        Parent = notifFrame,
-        BackgroundColor3 = Config.Colors.Accent,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 1, -2),
-        Size = UDim2.new(0, 0, 0, 2),
-        ZIndex = 101
-    })
-    
-    Tween(notifFrame, {BackgroundTransparency = 0, Position = positions[position]}, 0.4, Config.SpringEasing)
-    Tween(textLabel, {TextTransparency = 0}, 0.3)
-    Tween(iconLabel, {ImageTransparency = 0}, 0.3)
-    Tween(progressBar, {Size = UDim2.new(1, 0, 0, 2)}, duration, Enum.EasingStyle.Linear)
-    
-    local function close()
-        Tween(notifFrame, {BackgroundTransparency = 1, Position = notifFrame.Position + UDim2.new(0, 50, 0, 0)}, 0.3)
-        Tween(textLabel, {TextTransparency = 1}, 0.2)
-        Tween(iconLabel, {ImageTransparency = 1}, 0.2)
-        task.wait(0.3)
-        notifFrame:Destroy()
-    end
-    
-    closeBtn.MouseButton1Click:Connect(close)
-    task.delay(duration, close)
+local function SetShadow(instance, transparency)
+	local shadow = Create("ImageLabel", {
+		Name = "Shadow",
+		BackgroundTransparency = 1,
+		Image = "rbxassetid://1316045217",
+		ImageColor3 = Color3.fromRGB(0, 0, 0),
+		ImageTransparency = transparency or 0.7,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = Rect.new(10, 10, 118, 118),
+		Size = UDim2.new(1, 20, 1, 20),
+		Position = UDim2.new(0, -10, 0, -10),
+		ZIndex = instance.ZIndex - 1,
+		Parent = instance
+	})
+	return shadow
 end
 
-function Rift:CreateWindow(options)
-    options = options or {}
-    local title = options.title or "Rift UI Library"
-    local subtitle = options.subtitle or "Clean modern Roblox UI"
-    local text = options.text or "Rift"
-    local size = options.size or Vector2.new(600, 400)
-    local accentColor = options.color or Config.Colors.Accent
-    
-    local Window = {}
-    Window.Tabs = {}
-    Window.ActiveTab = nil
-    Window.AccentColor = accentColor
-    
-    local ScreenGui = Create("ScreenGui", {
-        Name = "RiftUI",
-        Parent = game.CoreGui,
-        ResetOnSpawn = false,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    })
-    
-    local MainFrame = Create("Frame", {
-        Name = "MainFrame",
-        Parent = ScreenGui,
-        BackgroundColor3 = Config.Colors.Background,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, -size.X/2, 0.5, -size.Y/2),
-        Size = UDim2.new(0, 0, 0, 0),
-        ClipsDescendants = true
-    })
-    CreateCorner(MainFrame, 12)
-    CreateStroke(MainFrame)
-    CreateShadow(MainFrame, 40)
-    
-    Tween(MainFrame, {Size = UDim2.new(0, size.X, 0, size.Y)}, 0.5, Config.SpringEasing)
-    
-    local Header = Create("Frame", {
-        Name = "Header",
-        Parent = MainFrame,
-        BackgroundColor3 = Config.Colors.DarkBackground,
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 60)
-    })
-    CreateCorner(Header, 12)
-    
-    local TitleLabel = Create("TextLabel", {
-        Parent = Header,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 20, 0, 8),
-        Size = UDim2.new(0, 200, 0, 25),
-        Font = Enum.Font.GothamBold,
-        Text = title,
-        TextColor3 = Config.Colors.Text,
-        TextSize = 18,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-    
-    local SubtitleLabel = Create("TextLabel", {
-        Parent = Header,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 20, 0, 33),
-        Size = UDim2.new(0, 200, 0, 18),
-        Font = Enum.Font.Gotham,
-        Text = subtitle,
-        TextColor3 = Config.Colors.SubText,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left
-    })
-    
-    local PingLabel = Create("TextLabel", {
-        Parent = Header,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -150, 0, 20),
-        Size = UDim2.new(0, 60, 0, 20),
-        Font = Enum.Font.GothamMedium,
-        Text = "0 ms",
-        TextColor3 = Config.Colors.SubText,
-        TextSize = 12
-    })
-    
-    task.spawn(function()
-        while ScreenGui.Parent do
-            local ping = math.random(20, 150)
-            PingLabel.Text = ping .. " ms"
-            PingLabel.TextColor3 = ping < 50 and Config.Colors.Success or (ping < 100 and Color3.fromRGB(255, 255, 0) or Config.Colors.Error)
-            task.wait(1)
-        end
-    end)
-    
-    local HideButton = Create("TextButton", {
-        Parent = Header,
-        BackgroundColor3 = Config.Colors.LightBackground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(1, -85, 0.5, -12),
-        Size = UDim2.new(0, 25, 0, 25),
-        Font = Enum.Font.GothamBold,
-        Text = "−",
-        TextColor3 = Config.Colors.Text,
-        TextSize = 16,
-        AutoButtonColor = false
-    })
-    CreateCorner(HideButton, 6)
-    
-    HideButton.MouseEnter:Connect(function()
-        Tween(HideButton, {BackgroundColor3 = Config.Colors.LighterBackground}, Config.FastDuration)
-    end)
-    HideButton.MouseLeave:Connect(function()
-        Tween(HideButton, {BackgroundColor3 = Config.Colors.LightBackground}, Config.FastDuration)
-    end)
-    
-    local CloseButton = Create("TextButton", {
-        Parent = Header,
-        BackgroundColor3 = Config.Colors.LightBackground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(1, -50, 0.5, -12),
-        Size = UDim2.new(0, 25, 0, 25),
-        Font = Enum.Font.GothamBold,
-        Text = "×",
-        TextColor3 = Config.Colors.Text,
-        TextSize = 16,
-        AutoButtonColor = false
-    })
-    CreateCorner(CloseButton, 6)
-    
-    CloseButton.MouseEnter:Connect(function()
-        Tween(CloseButton, {BackgroundColor3 = Config.Colors.Error}, Config.FastDuration)
-    end)
-    CloseButton.MouseLeave:Connect(function()
-        Tween(CloseButton, {BackgroundColor3 = Config.Colors.LightBackground}, Config.FastDuration)
-    end)
-    
-    local Modal = Create("Frame", {
-        Parent = ScreenGui,
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 1, 0),
-        ZIndex = 1000,
-        Visible = false
-    })
-    
-    local ModalContent = Create("Frame", {
-        Parent = Modal,
-        BackgroundColor3 = Config.Colors.Background,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, -150, 0.5, -75),
-        Size = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        ZIndex = 1001
-    })
-    CreateCorner(ModalContent, 12)
-    CreateStroke(ModalContent)
-    
-    local ModalTitle = Create("TextLabel", {
-        Parent = ModalContent,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 20),
-        Size = UDim2.new(1, 0, 0, 25),
-        Font = Enum.Font.GothamBold,
-        Text = "Confirm Action",
-        TextColor3 = Config.Colors.Text,
-        TextSize = 18,
-        ZIndex = 1002
-    })
-    
-    local ModalText = Create("TextLabel", {
-        Parent = ModalContent,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 20, 0, 55),
-        Size = UDim2.new(1, -40, 0, 40),
-        Font = Enum.Font.Gotham,
-        Text = "Are you sure you want to close the UI?",
-        TextColor3 = Config.Colors.SubText,
-        TextSize = 14,
-        TextWrapped = true,
-        ZIndex = 1002
-    })
-    
-    local ConfirmBtn = Create("TextButton", {
-        Parent = ModalContent,
-        BackgroundColor3 = Config.Colors.Error,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, 10, 1, -50),
-        Size = UDim2.new(0.5, -20, 0, 35),
-        Font = Enum.Font.GothamBold,
-        Text = "Confirm",
-        TextColor3 = Config.Colors.Text,
-        TextSize = 14,
-        ZIndex = 1002,
-        AutoButtonColor = false
-    })
-    CreateCorner(ConfirmBtn, 6)
-    
-    local DeclineBtn = Create("TextButton", {
-        Parent = ModalContent,
-        BackgroundColor3 = Config.Colors.LightBackground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 10, 1, -50),
-        Size = UDim2.new(0.5, -20, 0, 35),
-        Font = Enum.Font.GothamBold,
-        Text = "Decline",
-        TextColor3 = Config.Colors.Text,
-        TextSize = 14,
-        ZIndex = 1002,
-        AutoButtonColor = false
-    })
-    CreateCorner(DeclineBtn, 6)
-    
-    local ContentContainer = Create("Frame", {
-        Name = "ContentContainer",
-        Parent = MainFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 140, 0, 70),
-        Size = UDim2.new(1, -150, 1, -80)
-    })
-    
-    local TabContainer = Create("Frame", {
-        Name = "TabContainer",
-        Parent = MainFrame,
-        BackgroundColor3 = Config.Colors.DarkBackground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 60),
-        Size = UDim2.new(0, 130, 1, -60)
-    })
-    
-    local TabList = Create("ScrollingFrame", {
-        Parent = TabContainer,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 10),
-        Size = UDim2.new(1, 0, 1, -20),
-        ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0, 0, 0, 0)
-    })
-    
-    local TabListLayout = Create("UIListLayout", {
-        Parent = TabList,
-        Padding = UDim.new(0, 2),
-        SortOrder = Enum.SortOrder.LayoutOrder
-    })
-    
-    local ActiveIndicator = Create("Frame", {
-        Parent = TabContainer,
-        BackgroundColor3 = accentColor,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 10),
-        Size = UDim2.new(0, 3, 0, 32),
-        ZIndex = 10
-    })
-    CreateCorner(ActiveIndicator, 2)
-    
-    local DraggableIcon = Create("Frame", {
-        Name = "DraggableIcon",
-        Parent = ScreenGui,
-        BackgroundColor3 = Config.Colors.Background,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0.5, -25, 0.5, -25),
-        Size = UDim2.new(0, 0, 0, 0),
-        Visible = false,
-        ZIndex = 100
-    })
-    CreateCorner(DraggableIcon, 25)
-    CreateStroke(DraggableIcon)
-    CreateShadow(DraggableIcon, 20)
-    
-    local IconText = Create("TextLabel", {
-        Parent = DraggableIcon,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = text:sub(1, 1),
-        TextColor3 = Config.Colors.Text,
-        TextSize = 20
-    })
-    
-    local ProfileFrame = Create("Frame", {
-        Parent = MainFrame,
-        BackgroundColor3 = Config.Colors.DarkBackground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 10, 1, -55),
-        Size = UDim2.new(0, 110, 0, 45)
-    })
-    CreateCorner(ProfileFrame, 8)
-    
-    local AvatarImage = Create("ImageLabel", {
-        Parent = ProfileFrame,
-        BackgroundColor3 = Config.Colors.LightBackground,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 5, 0.5, -17),
-        Size = UDim2.new(0, 34, 0, 34),
-        Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size48x48)
-    })
-    CreateCorner(AvatarImage, 17)
-    
-    local UsernameLabel = Create("TextLabel", {
-        Parent = ProfileFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 45, 0, 8),
-        Size = UDim2.new(1, -50, 0, 14),
-        Font = Enum.Font.GothamBold,
-        Text = LocalPlayer.DisplayName,
-        TextColor3 = Config.Colors.Text,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextTruncate = Enum.TextTruncate.AtEnd
-    })
-    
-    local DisplayLabel = Create("TextLabel", {
-        Parent = ProfileFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 45, 0, 24),
-        Size = UDim2.new(1, -50, 0, 12),
-        Font = Enum.Font.Gotham,
-        Text = "@" .. LocalPlayer.Name,
-        TextColor3 = Config.Colors.SubText,
-        TextSize = 10,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextTruncate = Enum.TextTruncate.AtEnd
-    })
-    
-    local dragging = false
-    local dragInput
-    local dragStart
-    local startPos
-    
-    Header.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-    
-    Header.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    local iconDragging = false
-    local iconDragStart
-    local iconStartPos
-    
-    DraggableIcon.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            iconDragging = true
-            iconDragStart = input.Position
-            iconStartPos = DraggableIcon.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    iconDragging = false
-                end
-            end)
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if iconDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - iconDragStart
-            DraggableIcon.Position = UDim2.new(iconStartPos.X.Scale, iconStartPos.X.Offset + delta.X, iconStartPos.Y.Scale, iconStartPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    DraggableIcon.MouseEnter:Connect(function()
-        Tween(DraggableIcon, {Size = UDim2.new(0, 55, 0, 55), Position = DraggableIcon.Position - UDim2.new(0, 2.5, 0, 2.5)}, Config.FastDuration)
-    end)
-    
-    DraggableIcon.MouseLeave:Connect(function()
-        Tween(DraggableIcon, {Size = UDim2.new(0, 50, 0, 50), Position = DraggableIcon.Position + UDim2.new(0, 2.5, 0, 2.5)}, Config.FastDuration)
-    end)
-    
-    local isVisible = true
-    
-    local function hideUI()
-        isVisible = false
-        Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset + size.X/2, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset + size.Y/2)}, 0.4, Config.SpringEasing)
-        task.wait(0.4)
-        MainFrame.Visible = false
-        DraggableIcon.Visible = true
-        DraggableIcon.Position = UDim2.new(0, Mouse.X - 25, 0, Mouse.Y - 25)
-        DraggableIcon.Size = UDim2.new(0, 0, 0, 0)
-        Tween(DraggableIcon, {Size = UDim2.new(0, 50, 0, 50)}, 0.3, Config.SpringEasing)
-    end
-    
-    local function showUI()
-        isVisible = true
-        DraggableIcon.Visible = false
-        MainFrame.Visible = true
-        MainFrame.Size = UDim2.new(0, 0, 0, 0)
-        MainFrame.Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset - size.X/2, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset - size.Y/2)
-        Tween(MainFrame, {Size = UDim2.new(0, size.X, 0, size.Y), Position = UDim2.new(MainFrame.Position.X.Scale, MainFrame.Position.X.Offset + size.X/2, MainFrame.Position.Y.Scale, MainFrame.Position.Y.Offset + size.Y/2)}, 0.5, Config.SpringEasing)
-    end
-    
-    HideButton.MouseButton1Click:Connect(hideUI)
-    DraggableIcon.MouseButton1Click:Connect(showUI)
-    
-    CloseButton.MouseButton1Click:Connect(function()
-        Modal.Visible = true
-        Tween(Modal, {BackgroundTransparency = 0.7}, 0.2)
-        Tween(ModalContent, {Size = UDim2.new(0, 300, 0, 150), BackgroundTransparency = 0}, 0.4, Config.SpringEasing)
-    end)
-    
-    local function closeModal(confirmed)
-        Tween(ModalContent, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.3)
-        Tween(Modal, {BackgroundTransparency = 1}, 0.3)
-        task.wait(0.3)
-        Modal.Visible = false
-        if confirmed then
-            Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.4, Config.SpringEasing)
-            task.wait(0.4)
-            ScreenGui:Destroy()
-        end
-    end
-    
-    ConfirmBtn.MouseButton1Click:Connect(function()
-        closeModal(true)
-    end)
-    
-    DeclineBtn.MouseButton1Click:Connect(function()
-        closeModal(false)
-    end)
-    
-    ConfirmBtn.MouseEnter:Connect(function()
-        Tween(ConfirmBtn, {BackgroundColor3 = Color3.fromRGB(255, 100, 100)}, Config.FastDuration)
-    end)
-    ConfirmBtn.MouseLeave:Connect(function()
-        Tween(ConfirmBtn, {BackgroundColor3 = Config.Colors.Error}, Config.FastDuration)
-    end)
-    
-    DeclineBtn.MouseEnter:Connect(function()
-        Tween(DeclineBtn, {BackgroundColor3 = Config.Colors.LighterBackground}, Config.FastDuration)
-    end)
-    DeclineBtn.MouseLeave:Connect(function()
-        Tween(DeclineBtn, {BackgroundColor3 = Config.Colors.LightBackground}, Config.FastDuration)
-    end)
-    
-    function Window:CreateTab(tabName)
-        local Tab = {}
-        
-        local TabButton = Create("TextButton", {
-            Parent = TabList,
-            BackgroundColor3 = Config.Colors.DarkBackground,
-            BorderSizePixel = 0,
-            Size = UDim2.new(1, -10, 0, 32),
-            Position = UDim2.new(0, 5, 0, 0),
-            Font = Enum.Font.GothamMedium,
-            Text = tabName,
-            TextColor3 = Config.Colors.SubText,
-            TextSize = 13,
-            AutoButtonColor = false
-        })
-        
-        local TabContent = Create("ScrollingFrame", {
-            Parent = ContentContainer,
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 1, 0),
-            ScrollBarThickness = 2,
-            ScrollBarImageColor3 = Config.Colors.LightBackground,
-            Visible = false,
-            CanvasSize = UDim2.new(0, 0, 0, 0)
-        })
-        
-        local TabContentLayout = Create("UIListLayout", {
-            Parent = TabContent,
-            Padding = UDim.new(0, 10),
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
-        
-        TabContentLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            TabContent.CanvasSize = UDim2.new(0, 0, 0, TabContentLayout.AbsoluteContentSize.Y + 20)
-        end)
-        
-        Tab.TabButton = TabButton
-        Tab.TabContent = TabContent
-        
-        table.insert(self.Tabs, Tab)
-        
-        TabButton.MouseButton1Click:Connect(function()
-            if Window.ActiveTab == Tab then return end
-            
-            local btnPos = TabButton.AbsolutePosition.Y - TabList.AbsolutePosition.Y + TabList.CanvasPosition.Y
-            Tween(ActiveIndicator, {Position = UDim2.new(0, 0, 0, 10 + btnPos)}, 0.3, Config.SpringEasing)
-            
-            if Window.ActiveTab then
-                Tween(Window.ActiveTab.TabButton, {TextColor3 = Config.Colors.SubText}, Config.FastDuration)
-                Window.ActiveTab.TabContent.Visible = false
-            end
-            
-            Window.ActiveTab = Tab
-            TabContent.Visible = true
-            Tween(TabButton, {TextColor3 = Config.Colors.Text}, Config.FastDuration)
-        end)
-        
-        TabButton.MouseEnter:Connect(function()
-            if Window.ActiveTab ~= Tab then
-                Tween(TabButton, {TextColor3 = Config.Colors.Text}, Config.FastDuration)
-            end
-        end)
-        
-        TabButton.MouseLeave:Connect(function()
-            if Window.ActiveTab ~= Tab then
-                Tween(TabButton, {TextColor3 = Config.Colors.SubText}, Config.FastDuration)
-            end
-        end)
-        
-        function Tab:CreateButton(options)
-            options = options or {}
-            local text = options.text or "Button"
-            local callback = options.callback or function() end
-            
-            local ButtonFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 40)
-            })
-            CreateCorner(ButtonFrame, 8)
-            
-            local Button = Create("TextButton", {
-                Parent = ButtonFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                AutoButtonColor = false
-            })
-            
-            local Glow = Create("Frame", {
-                Parent = ButtonFrame,
-                BackgroundColor3 = accentColor,
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, 0, 1, 0),
-                ZIndex = 0
-            })
-            CreateCorner(Glow, 8)
-            
-            Button.MouseEnter:Connect(function()
-                Tween(ButtonFrame, {BackgroundColor3 = Config.Colors.LighterBackground}, Config.FastDuration)
-                Tween(Glow, {BackgroundTransparency = 0.9}, Config.FastDuration)
-            end)
-            
-            Button.MouseLeave:Connect(function()
-                Tween(ButtonFrame, {BackgroundColor3 = Config.Colors.LightBackground}, Config.FastDuration)
-                Tween(Glow, {BackgroundTransparency = 1}, Config.FastDuration)
-            end)
-            
-            Button.MouseButton1Down:Connect(function()
-                Tween(ButtonFrame, {Size = UDim2.new(0.98, -10, 0, 38)}, 0.1)
-            end)
-            
-            Button.MouseButton1Up:Connect(function()
-                Tween(ButtonFrame, {Size = UDim2.new(1, -10, 0, 40)}, 0.1)
-            end)
-            
-            Button.MouseButton1Click:Connect(callback)
-            
-            return Button
-        end
-        
-        function Tab:CreateToggle(options)
-            options = options or {}
-            local text = options.text or "Toggle"
-            local default = options.default or false
-            local callback = options.callback or function() end
-            
-            local ToggleFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 40)
-            })
-            CreateCorner(ToggleFrame, 8)
-            
-            local Label = Create("TextLabel", {
-                Parent = ToggleFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -70, 1, 0),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local ToggleButton = Create("Frame", {
-                Parent = ToggleFrame,
-                BackgroundColor3 = Config.Colors.ToggleOff,
-                BorderSizePixel = 0,
-                Position = UDim2.new(1, -55, 0.5, -12),
-                Size = UDim2.new(0, 44, 0, 24)
-            })
-            CreateCorner(ToggleButton, 12)
-            
-            local Circle = Create("Frame", {
-                Parent = ToggleButton,
-                BackgroundColor3 = Config.Colors.Text,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 2, 0.5, -10),
-                Size = UDim2.new(0, 20, 0, 20)
-            })
-            CreateCorner(Circle, 10)
-            
-            local ClickArea = Create("TextButton", {
-                Parent = ToggleFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = ""
-            })
-            
-            local enabled = default
-            
-            local function updateToggle()
-                if enabled then
-                    Tween(ToggleButton, {BackgroundColor3 = Config.Colors.ToggleOn}, Config.FastDuration)
-                    Tween(Circle, {Position = UDim2.new(0, 22, 0.5, -10)}, Config.FastDuration)
-                else
-                    Tween(ToggleButton, {BackgroundColor3 = Config.Colors.ToggleOff}, Config.FastDuration)
-                    Tween(Circle, {Position = UDim2.new(0, 2, 0.5, -10)}, Config.FastDuration)
-                end
-                callback(enabled)
-            end
-            
-            if default then
-                ToggleButton.BackgroundColor3 = Config.Colors.ToggleOn
-                Circle.Position = UDim2.new(0, 22, 0.5, -10)
-            end
-            
-            ClickArea.MouseButton1Click:Connect(function()
-                enabled = not enabled
-                updateToggle()
-            end)
-            
-            ToggleFrame.MouseEnter:Connect(function()
-                Tween(ToggleFrame, {BackgroundColor3 = Config.Colors.LighterBackground}, Config.FastDuration)
-            end)
-            
-            ToggleFrame.MouseLeave:Connect(function()
-                Tween(ToggleFrame, {BackgroundColor3 = Config.Colors.LightBackground}, Config.FastDuration)
-            end)
-            
-            return {
-                Set = function(value)
-                    enabled = value
-                    updateToggle()
-                end,
-                Get = function() return enabled end
-            }
-        end
-        
-        function Tab:CreateSlider(options)
-            options = options or {}
-            local text = options.text or "Slider"
-            local min = options.min or 0
-            local max = options.max or 100
-            local default = options.default or min
-            local callback = options.callback or function() end
-            
-            local SliderFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 55)
-            })
-            CreateCorner(SliderFrame, 8)
-            
-            local Label = Create("TextLabel", {
-                Parent = SliderFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 8),
-                Size = UDim2.new(0.5, 0, 0, 20),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local ValueLabel = Create("TextLabel", {
-                Parent = SliderFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -60, 0, 8),
-                Size = UDim2.new(0, 45, 0, 20),
-                Font = Enum.Font.GothamBold,
-                Text = tostring(default),
-                TextColor3 = accentColor,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Right
-            })
-            
-            local Track = Create("Frame", {
-                Parent = SliderFrame,
-                BackgroundColor3 = Config.Colors.DarkBackground,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 15, 0, 38),
-                Size = UDim2.new(1, -30, 0, 4)
-            })
-            CreateCorner(Track, 2)
-            
-            local Fill = Create("Frame", {
-                Parent = Track,
-                BackgroundColor3 = accentColor,
-                BorderSizePixel = 0,
-                Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
-            })
-            CreateCorner(Fill, 2)
-            
-            local Handle = Create("Frame", {
-                Parent = Track,
-                BackgroundColor3 = Config.Colors.Text,
-                BorderSizePixel = 0,
-                Position = UDim2.new((default - min) / (max - min), -8, 0.5, -8),
-                Size = UDim2.new(0, 16, 0, 16),
-                ZIndex = 2
-            })
-            CreateCorner(Handle, 8)
-            
-            local ClickArea = Create("TextButton", {
-                Parent = SliderFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = ""
-            })
-            
-            local dragging = false
-            local value = default
-            
-            local function updateSlider(input)
-                local pos = math.clamp((input.Position.X - Track.AbsolutePosition.X) / Track.AbsoluteSize.X, 0, 1)
-                value = math.floor(min + (max - min) * pos)
-                ValueLabel.Text = tostring(value)
-                Tween(Fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.05)
-                Tween(Handle, {Position = UDim2.new(pos, -8, 0.5, -8)}, 0.05)
-                callback(value)
-            end
-            
-            ClickArea.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    dragging = true
-                    updateSlider(input)
-                end
-            end)
-            
-            UserInputService.InputChanged:Connect(function(input)
-                if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                    updateSlider(input)
-                end
-            end)
-            
-            UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    dragging = false
-                end
-            end)
-            
-            Handle.MouseEnter:Connect(function()
-                Tween(Handle, {Size = UDim2.new(0, 20, 0, 20), Position = Handle.Position - UDim2.new(0, 2, 0, 2)}, Config.FastDuration)
-            end)
-            
-            Handle.MouseLeave:Connect(function()
-                if not dragging then
-                    Tween(Handle, {Size = UDim2.new(0, 16, 0, 16), Position = Handle.Position + UDim2.new(0, 2, 0, 2)}, Config.FastDuration)
-                end
-            end)
-            
-            return {
-                Set = function(val)
-                    value = math.clamp(val, min, max)
-                    local pos = (value - min) / (max - min)
-                    ValueLabel.Text = tostring(value)
-                    Tween(Fill, {Size = UDim2.new(pos, 0, 1, 0)}, 0.1)
-                    Tween(Handle, {Position = UDim2.new(pos, -8, 0.5, -8)}, 0.1)
-                    callback(value)
-                end,
-                Get = function() return value end
-            }
-        end
-        
-        function Tab:CreateDropdown(options)
-            options = options or {}
-            local text = options.text or "Dropdown"
-            local values = options.values or {}
-            local default = options.default
-            local callback = options.callback or function() end
-            
-            local DropdownFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 40),
-                ClipsDescendants = true
-            })
-            CreateCorner(DropdownFrame, 8)
-            
-            local Label = Create("TextLabel", {
-                Parent = DropdownFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -50, 0, 40),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local Arrow = Create("TextLabel", {
-                Parent = DropdownFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(1, -35, 0, 0),
-                Size = UDim2.new(0, 30, 0, 40),
-                Font = Enum.Font.GothamBold,
-                Text = "▼",
-                TextColor3 = Config.Colors.SubText,
-                TextSize = 12
-            })
-            
-            local selected = default or (values[1] or "Select...")
-            Label.Text = text .. ": " .. selected
-            
-            local ListFrame = Create("Frame", {
-                Parent = DropdownFrame,
-                BackgroundColor3 = Config.Colors.DarkBackground,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 5, 0, 45),
-                Size = UDim2.new(1, -10, 0, 0),
-                Visible = false,
-                ZIndex = 50
-            })
-            CreateCorner(ListFrame, 8)
-            CreateStroke(ListFrame)
-            
-            local SearchBox = Create("TextBox", {
-                Parent = ListFrame,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 8, 0, 8),
-                Size = UDim2.new(1, -16, 0, 30),
-                Font = Enum.Font.Gotham,
-                PlaceholderText = "Search...",
-                PlaceholderColor3 = Config.Colors.SubText,
-                Text = "",
-                TextColor3 = Config.Colors.Text,
-                TextSize = 13,
-                ZIndex = 51
-            })
-            CreateCorner(SearchBox, 6)
-            
-            local OptionsList = Create("ScrollingFrame", {
-                Parent = ListFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 45),
-                Size = UDim2.new(1, 0, 1, -50),
-                ScrollBarThickness = 2,
-                ScrollBarImageColor3 = Config.Colors.LightBackground,
-                ZIndex = 51
-            })
-            
-            local OptionsLayout = Create("UIListLayout", {
-                Parent = OptionsList,
-                Padding = UDim.new(0, 2)
-            })
-            
-            local isOpen = false
-            
-            local function updateOptions(filter)
-                for _, child in pairs(OptionsList:GetChildren()) do
-                    if child:IsA("TextButton") then child:Destroy() end
-                end
-                
-                for _, value in pairs(values) do
-                    if not filter or string.find(string.lower(value), string.lower(filter)) then
-                        local OptionBtn = Create("TextButton", {
-                            Parent = OptionsList,
-                            BackgroundColor3 = Config.Colors.DarkBackground,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new(1, -10, 0, 30),
-                            Position = UDim2.new(0, 5, 0, 0),
-                            Font = Enum.Font.Gotham,
-                            Text = value,
-                            TextColor3 = Config.Colors.Text,
-                            TextSize = 13,
-                            ZIndex = 52,
-                            AutoButtonColor = false
-                        })
-                        
-                        OptionBtn.MouseEnter:Connect(function()
-                            Tween(OptionBtn, {BackgroundColor3 = Config.Colors.LightBackground}, Config.FastDuration)
-                        end)
-                        
-                        OptionBtn.MouseLeave:Connect(function()
-                            Tween(OptionBtn, {BackgroundColor3 = Config.Colors.DarkBackground}, Config.FastDuration)
-                        end)
-                        
-                        OptionBtn.MouseButton1Click:Connect(function()
-                            selected = value
-                            Label.Text = text .. ": " .. selected
-                            callback(selected)
-                            isOpen = false
-                            Tween(Arrow, {Rotation = 0}, Config.FastDuration)
-                            Tween(ListFrame, {Size = UDim2.new(1, -10, 0, 0)}, 0.2)
-                            task.wait(0.2)
-                            ListFrame.Visible = false
-                            Tween(DropdownFrame, {Size = UDim2.new(1, -10, 0, 40)}, 0.2)
-                        end)
-                    end
-                end
-                
-                OptionsList.CanvasSize = UDim2.new(0, 0, 0, OptionsLayout.AbsoluteContentSize.Y + 10)
-            end
-            
-            updateOptions()
-            
-            local ClickArea = Create("TextButton", {
-                Parent = DropdownFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 40),
-                Text = ""
-            })
-            
-            ClickArea.MouseButton1Click:Connect(function()
-                isOpen = not isOpen
-                if isOpen then
-                    ListFrame.Visible = true
-                    Tween(DropdownFrame, {Size = UDim2.new(1, -10, 0, 200)}, 0.3)
-                    Tween(ListFrame, {Size = UDim2.new(1, -10, 0, 150)}, 0.3)
-                    Tween(Arrow, {Rotation = 180}, Config.FastDuration)
-                else
-                    Tween(Arrow, {Rotation = 0}, Config.FastDuration)
-                    Tween(ListFrame, {Size = UDim2.new(1, -10, 0, 0)}, 0.2)
-                    task.wait(0.2)
-                    ListFrame.Visible = false
-                    Tween(DropdownFrame, {Size = UDim2.new(1, -10, 0, 40)}, 0.2)
-                end
-            end)
-            
-            SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
-                updateOptions(SearchBox.Text)
-            end)
-            
-            return {
-                Set = function(val)
-                    selected = val
-                    Label.Text = text .. ": " .. selected
-                    callback(selected)
-                end,
-                Get = function() return selected end,
-                Refresh = function(newValues)
-                    values = newValues
-                    updateOptions(SearchBox.Text)
-                end
-            }
-        end
-        
-        function Tab:CreateInput(options)
-            options = options or {}
-            local text = options.text or "Input"
-            local default = options.default or ""
-            local placeholder = options.placeholder or "Type here..."
-            local callback = options.callback or function() end
-            
-            local InputFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 75)
-            })
-            CreateCorner(InputFrame, 8)
-            
-            local Label = Create("TextLabel", {
-                Parent = InputFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 8),
-                Size = UDim2.new(1, -30, 0, 20),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local InputBox = Create("TextBox", {
-                Parent = InputFrame,
-                BackgroundColor3 = Config.Colors.DarkBackground,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 15, 0, 35),
-                Size = UDim2.new(1, -30, 0, 30),
-                Font = Enum.Font.Code,
-                PlaceholderText = placeholder,
-                PlaceholderColor3 = Config.Colors.SubText,
-                Text = default,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 13,
-                ClearTextOnFocus = false
-            })
-            CreateCorner(InputBox, 6)
-            
-            local Glow = Create("Frame", {
-                Parent = InputBox,
-                BackgroundColor3 = accentColor,
-                BackgroundTransparency = 1,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, -2, 0, -2),
-                Size = UDim2.new(1, 4, 1, 4),
-                ZIndex = 0
-            })
-            CreateCorner(Glow, 8)
-            
-            InputBox.Focused:Connect(function()
-                Tween(Glow, {BackgroundTransparency = 0.8}, Config.FastDuration)
-            end)
-            
-            InputBox.FocusLost:Connect(function()
-                Tween(Glow, {BackgroundTransparency = 1}, Config.FastDuration)
-                callback(InputBox.Text)
-            end)
-            
-            return {
-                Set = function(val)
-                    InputBox.Text = val
-                    callback(val)
-                end,
-                Get = function() return InputBox.Text end
-            }
-        end
-        
-        function Tab:CreateKeybind(options)
-            options = options or {}
-            local text = options.text or "Keybind"
-            local default = options.default or "None"
-            local callback = options.callback or function() end
-            
-            local KeybindFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 40)
-            })
-            CreateCorner(KeybindFrame, 8)
-            
-            local Label = Create("TextLabel", {
-                Parent = KeybindFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -100, 1, 0),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local KeyBox = Create("TextButton", {
-                Parent = KeybindFrame,
-                BackgroundColor3 = Config.Colors.DarkBackground,
-                BorderSizePixel = 0,
-                Position = UDim2.new(1, -85, 0.5, -15),
-                Size = UDim2.new(0, 70, 0, 30),
-                Font = Enum.Font.GothamBold,
-                Text = default,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 12,
-                AutoButtonColor = false
-            })
-            CreateCorner(KeyBox, 6)
-            
-            local listening = false
-            
-            KeyBox.MouseButton1Click:Connect(function()
-                if listening then return end
-                listening = true
-                KeyBox.Text = "..."
-                Tween(KeyBox, {BackgroundColor3 = accentColor}, Config.FastDuration)
-                
-                local connection
-                connection = UserInputService.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.Keyboard then
-                        local key = input.KeyCode.Name
-                        KeyBox.Text = key
-                        Tween(KeyBox, {BackgroundColor3 = Config.Colors.DarkBackground}, Config.FastDuration)
-                        callback(key)
-                        listening = false
-                        connection:Disconnect()
-                    end
-                end)
-            end)
-            
-            KeyBox.MouseEnter:Connect(function()
-                if not listening then
-                    Tween(KeyBox, {BackgroundColor3 = Config.Colors.LighterBackground}, Config.FastDuration)
-                end
-            end)
-            
-            KeyBox.MouseLeave:Connect(function()
-                if not listening then
-                    Tween(KeyBox, {BackgroundColor3 = Config.Colors.DarkBackground}, Config.FastDuration)
-                end
-            end)
-            
-            return {
-                Set = function(key)
-                    KeyBox.Text = key
-                    callback(key)
-                end,
-                Get = function() return KeyBox.Text end
-            }
-        end
-        
-        function Tab:CreateLabel(options)
-            options = options or {}
-            local text = options.text or "Label"
-            
-            local LabelFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, -10, 0, 25)
-            })
-            
-            local Label = Create("TextLabel", {
-                Parent = LabelFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Font = Enum.Font.Gotham,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                TextWrapped = true
-            })
-            
-            return {
-                Set = function(newText)
-                    Label.Text = newText
-                end
-            }
-        end
-        
-        function Tab:CreateParagraph(options)
-            options = options or {}
-            local title = options.title or "Title"
-            local content = options.content or "Content here..."
-            
-            local ParagraphFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 80),
-                AutomaticSize = Enum.AutomaticSize.Y
-            })
-            CreateCorner(ParagraphFrame, 8)
-            
-            local TitleLabel = Create("TextLabel", {
-                Parent = ParagraphFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 10),
-                Size = UDim2.new(1, -30, 0, 20),
-                Font = Enum.Font.GothamBold,
-                Text = title,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local ContentLabel = Create("TextLabel", {
-                Parent = ParagraphFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 35),
-                Size = UDim2.new(1, -30, 0, 40),
-                Font = Enum.Font.Gotham,
-                Text = content,
-                TextColor3 = Config.Colors.SubText,
-                TextSize = 13,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                TextWrapped = true
-            })
-            
-            return {
-                SetTitle = function(newTitle)
-                    TitleLabel.Text = newTitle
-                end,
-                SetContent = function(newContent)
-                    ContentLabel.Text = newContent
-                end
-            }
-        end
-        
-        function Tab:CreateColorPicker(options)
-            options = options or {}
-            local text = options.text or "Color Picker"
-            local default = options.default or Color3.fromRGB(255, 255, 255)
-            local callback = options.callback or function() end
-            
-            local ColorFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, -10, 0, 40)
-            })
-            CreateCorner(ColorFrame, 8)
-            
-            local Label = Create("TextLabel", {
-                Parent = ColorFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 15, 0, 0),
-                Size = UDim2.new(1, -70, 1, 0),
-                Font = Enum.Font.GothamMedium,
-                Text = text,
-                TextColor3 = Config.Colors.Text,
-                TextSize = 14,
-                TextXAlignment = Enum.TextXAlignment.Left
-            })
-            
-            local ColorPreview = Create("TextButton", {
-                Parent = ColorFrame,
-                BackgroundColor3 = default,
-                BorderSizePixel = 0,
-                Position = UDim2.new(1, -55, 0.5, -15),
-                Size = UDim2.new(0, 40, 0, 30),
-                Text = "",
-                AutoButtonColor = false
-            })
-            CreateCorner(ColorPreview, 6)
-            CreateStroke(ColorPreview)
-            
-            local PickerFrame = Create("Frame", {
-                Parent = ColorFrame,
-                BackgroundColor3 = Config.Colors.DarkBackground,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 5, 0, 45),
-                Size = UDim2.new(1, -10, 0, 0),
-                Visible = false,
-                ClipsDescendants = true,
-                ZIndex = 50
-            })
-            CreateCorner(PickerFrame, 8)
-            CreateStroke(PickerFrame)
-            
-            local HueSlider = Create("Frame", {
-                Parent = PickerFrame,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 10, 0, 10),
-                Size = UDim2.new(0, 20, 0, 150),
-                ZIndex = 51
-            })
-            CreateCorner(HueSlider, 4)
-            
-            local HueGradient = Create("UIGradient", {
-                Parent = HueSlider,
-                Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-                    ColorSequenceKeypoint.new(0.17, Color3.fromRGB(255, 255, 0)),
-                    ColorSequenceKeypoint.new(0.33, Color3.fromRGB(0, 255, 0)),
-                    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
-                    ColorSequenceKeypoint.new(0.67, Color3.fromRGB(0, 0, 255)),
-                    ColorSequenceKeypoint.new(0.83, Color3.fromRGB(255, 0, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
-                }),
-                Rotation = 90
-            })
-            
-            local SaturationFrame = Create("Frame", {
-                Parent = PickerFrame,
-                BackgroundColor3 = default,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 40, 0, 10),
-                Size = UDim2.new(0, 150, 0, 150),
-                ZIndex = 51
-            })
-            CreateCorner(SaturationFrame, 4)
-            
-            local WhiteOverlay = Create("Frame", {
-                Parent = SaturationFrame,
-                BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, 0, 1, 0),
-                ZIndex = 52
-            })
-            
-            local WhiteGradient = Create("UIGradient", {
-                Parent = WhiteOverlay,
-                Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-                }),
-                Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0, 0),
-                    NumberSequenceKeypoint.new(1, 1)
-                })
-            })
-            
-            local BlackOverlay = Create("Frame", {
-                Parent = SaturationFrame,
-                BackgroundColor3 = Color3.fromRGB(0, 0, 0),
-                BorderSizePixel = 0,
-                Size = UDim2.new(1, 0, 1, 0),
-                ZIndex = 53
-            })
-            
-            local BlackGradient = Create("UIGradient", {
-                Parent = BlackOverlay,
-                Rotation = 90,
-                Color = ColorSequence.new({
-                    ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-                    ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
-                }),
-                Transparency = NumberSequence.new({
-                    NumberSequenceKeypoint.new(0, 1),
-                    NumberSequenceKeypoint.new(1, 0)
-                })
-            })
-            
-            local isOpen = false
-            local currentColor = default
-            
-            ColorPreview.MouseButton1Click:Connect(function()
-                isOpen = not isOpen
-                if isOpen then
-                    PickerFrame.Visible = true
-                    Tween(ColorFrame, {Size = UDim2.new(1, -10, 0, 210)}, 0.3)
-                    Tween(PickerFrame, {Size = UDim2.new(1, -10, 0, 170)}, 0.3)
-                else
-                    Tween(PickerFrame, {Size = UDim2.new(1, -10, 0, 0)}, 0.2)
-                    task.wait(0.2)
-                    PickerFrame.Visible = false
-                    Tween(ColorFrame, {Size = UDim2.new(1, -10, 0, 40)}, 0.2)
-                end
-            end)
-            
-            return {
-                Set = function(color)
-                    currentColor = color
-                    ColorPreview.BackgroundColor3 = color
-                    callback(color)
-                end,
-                Get = function() return currentColor end
-            }
-        end
-        
-        function Tab:CreateImage(options)
-            options = options or {}
-            local image = options.image or ""
-            local imageSize = options.size or UDim2.new(1, -10, 0, 150)
-            local callback = options.callback or function() end
-            
-            local ImageFrame = Create("Frame", {
-                Parent = TabContent,
-                BackgroundColor3 = Config.Colors.LightBackground,
-                BorderSizePixel = 0,
-                Size = imageSize
-            })
-            CreateCorner(ImageFrame, 8)
-            
-            local ImageLabel = Create("ImageLabel", {
-                Parent = ImageFrame,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 5, 0, 5),
-                Size = UDim2.new(1, -10, 1, -10),
-                Image = image,
-                ScaleType = Enum.ScaleType.Stretch
-            })
-            CreateCorner(ImageLabel, 6)
-            
-            local ClickArea = Create("TextButton", {
-                Parent = ImageFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 1, 0),
-                Text = ""
-            })
-            
-            ClickArea.MouseButton1Click:Connect(function()
-                Tween(ImageFrame, {Size = UDim2.new(imageSize.X.Scale * 0.98, imageSize.X.Offset * 0.98, 0, imageSize.Y.Offset * 0.98)}, 0.1)
-                task.wait(0.1)
-                Tween(ImageFrame, {Size = imageSize}, 0.1)
-                callback()
-            end)
-            
-            return {
-                Set = function(newImage)
-                    ImageLabel.Image = newImage
-                end
-            }
-        end
-        
-        return Tab
-    end
-    
-    return Window
+local function MakeDraggable(frame, dragArea)
+	local dragging = false
+	local dragInput, dragStart, startPos
+	
+	dragArea = dragArea or frame
+	
+	dragArea.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	
+	dragArea.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
 end
 
-return Rift
+function RiftUI:CreateWindow(config)
+	config = config or {}
+	local title = config.title or "Rift UI Library"
+	local subtitle = config.subtitle or "Clean modern Roblox UI"
+	local iconText = config.text or "Rift"
+	local size = config.size or Vector2.new(600, 400)
+	local accentColor = config.color or RiftUI.Theme.Accent
+	
+	local screenGui = Create("ScreenGui", {
+		Name = "RiftUI_" .. HttpService:GenerateGUID(false),
+		Parent = PlayerGui,
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	})
+	
+	local mainFrame = Create("Frame", {
+		Name = "MainFrame",
+		Size = UDim2.new(0, size.X, 0, size.Y),
+		Position = UDim2.new(0.5, -size.X/2, 0.5, -size.Y/2),
+		BackgroundColor3 = RiftUI.Theme.Background,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Parent = screenGui
+	})
+	SetCorner(mainFrame, UDim.new(0, 8))
+	SetStroke(mainFrame, RiftUI.Theme.Stroke, 1)
+	SetShadow(mainFrame, 0.6)
+	
+	local header = Create("Frame", {
+		Name = "Header",
+		Size = UDim2.new(1, 0, 0, 70),
+		BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+		BorderSizePixel = 0,
+		Parent = mainFrame
+	})
+	
+	local headerStroke = Create("Frame", {
+		Name = "HeaderStroke",
+		Size = UDim2.new(1, 0, 0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+		BorderSizePixel = 0,
+		Parent = header
+	})
+	
+	local titleLabel = Create("TextLabel", {
+		Name = "Title",
+		Text = title,
+		Font = Enum.Font.GothamBold,
+		TextSize = 18,
+		TextColor3 = RiftUI.Theme.Text,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 200, 0, 22),
+		Position = UDim2.new(0, 15, 0, 12),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = header
+	})
+	
+	local subtitleLabel = Create("TextLabel", {
+		Name = "Subtitle",
+		Text = subtitle,
+		Font = Enum.Font.Gotham,
+		TextSize = 12,
+		TextColor3 = RiftUI.Theme.TextSecondary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 200, 0, 16),
+		Position = UDim2.new(0, 15, 0, 34),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = header
+	})
+	
+	local pingLabel = Create("TextLabel", {
+		Name = "Ping",
+		Text = "0 ms",
+		Font = Enum.Font.Gotham,
+		TextSize = 12,
+		TextColor3 = RiftUI.Theme.TextSecondary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 60, 0, 20),
+		Position = UDim2.new(1, -140, 0, 25),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		Parent = header
+	})
+	
+	local pingConnection = RunService.Heartbeat:Connect(function()
+		local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+		pingLabel.Text = ping .. " ms"
+		if ping < 50 then
+			pingLabel.TextColor3 = RiftUI.Theme.Success
+		elseif ping < 100 then
+			pingLabel.TextColor3 = RiftUI.Theme.Warning
+		else
+			pingLabel.TextColor3 = RiftUI.Theme.Error
+		end
+	end)
+	
+	local hideButton = Create("TextButton", {
+		Name = "HideButton",
+		Text = "-",
+		Font = Enum.Font.GothamBold,
+		TextSize = 18,
+		TextColor3 = RiftUI.Theme.TextSecondary,
+		BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+		Size = UDim2.new(0, 28, 0, 28),
+		Position = UDim2.new(1, -70, 0, 21),
+		Parent = header
+	})
+	SetCorner(hideButton, UDim.new(0, 6))
+	
+	hideButton.MouseEnter:Connect(function()
+		Tween(hideButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.Accent, TextColor3 = RiftUI.Theme.Background})
+	end)
+	
+	hideButton.MouseLeave:Connect(function()
+		Tween(hideButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary, TextColor3 = RiftUI.Theme.TextSecondary})
+	end)
+	
+	local closeButton = Create("TextButton", {
+		Name = "CloseButton",
+		Text = "X",
+		Font = Enum.Font.GothamBold,
+		TextSize = 14,
+		TextColor3 = RiftUI.Theme.TextSecondary,
+		BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+		Size = UDim2.new(0, 28, 0, 28),
+		Position = UDim2.new(1, -35, 0, 21),
+		Parent = header
+	})
+	SetCorner(closeButton, UDim.new(0, 6))
+	
+	closeButton.MouseEnter:Connect(function()
+		Tween(closeButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.Error, TextColor3 = RiftUI.Theme.Text})
+	end)
+	
+	closeButton.MouseLeave:Connect(function()
+		Tween(closeButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary, TextColor3 = RiftUI.Theme.TextSecondary})
+	end)
+	
+	local modalOverlay = Create("Frame", {
+		Name = "ModalOverlay",
+		Size = UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 100,
+		Parent = mainFrame
+	})
+	
+	local modalFrame = Create("Frame", {
+		Name = "ModalFrame",
+		Size = UDim2.new(0, 280, 0, 140),
+		Position = UDim2.new(0.5, -140, 0.5, -70),
+		BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+		BorderSizePixel = 0,
+		BackgroundTransparency = 1,
+		ZIndex = 101,
+		Parent = modalOverlay
+	})
+	SetCorner(modalFrame, UDim.new(0, 8))
+	SetStroke(modalFrame, RiftUI.Theme.Stroke, 1)
+	
+	local modalTitle = Create("TextLabel", {
+		Name = "ModalTitle",
+		Text = "Confirm Close",
+		Font = Enum.Font.GothamBold,
+		TextSize = 16,
+		TextColor3 = RiftUI.Theme.Text,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 24),
+		Position = UDim2.new(0, 0, 0, 20),
+		ZIndex = 102,
+		Parent = modalFrame
+	})
+	
+	local modalText = Create("TextLabel", {
+		Name = "ModalText",
+		Text = "Are you sure you want to close?",
+		Font = Enum.Font.Gotham,
+		TextSize = 13,
+		TextColor3 = RiftUI.Theme.TextSecondary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.new(0, 0, 0, 50),
+		ZIndex = 102,
+		Parent = modalFrame
+	})
+	
+	local confirmButton = Create("TextButton", {
+		Name = "ConfirmButton",
+		Text = "Confirm",
+		Font = Enum.Font.GothamBold,
+		TextSize = 13,
+		TextColor3 = RiftUI.Theme.Background,
+		BackgroundColor3 = RiftUI.Theme.Success,
+		Size = UDim2.new(0, 100, 0, 32),
+		Position = UDim2.new(0, 30, 1, -50),
+		ZIndex = 102,
+		Parent = modalFrame
+	})
+	SetCorner(confirmButton, UDim.new(0, 6))
+	
+	local declineButton = Create("TextButton", {
+		Name = "DeclineButton",
+		Text = "Decline",
+		Font = Enum.Font.GothamBold,
+		TextSize = 13,
+		TextColor3 = RiftUI.Theme.Text,
+		BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+		Size = UDim2.new(0, 100, 0, 32),
+		Position = UDim2.new(1, -130, 1, -50),
+		ZIndex = 102,
+		Parent = modalFrame
+	})
+	SetCorner(declineButton, UDim.new(0, 6))
+	
+	confirmButton.MouseEnter:Connect(function()
+		Tween(confirmButton, RiftUI.Animation.Fast, {BackgroundColor3 = Color3.fromRGB(100, 220, 140)})
+	end)
+	
+	confirmButton.MouseLeave:Connect(function()
+		Tween(confirmButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.Success})
+	end)
+	
+	declineButton.MouseEnter:Connect(function()
+		Tween(declineButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.Background})
+	end)
+	
+	declineButton.MouseLeave:Connect(function()
+		Tween(declineButton, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary})
+	end)
+	
+	local contentFrame = Create("Frame", {
+		Name = "Content",
+		Size = UDim2.new(1, 0, 1, -70),
+		Position = UDim2.new(0, 0, 0, 70),
+		BackgroundTransparency = 1,
+		Parent = mainFrame
+	})
+	
+	local tabContainer = Create("Frame", {
+		Name = "TabContainer",
+		Size = UDim2.new(0, 140, 1, 0),
+		BackgroundColor3 = RiftUI.Theme.Background,
+		BorderSizePixel = 0,
+		Parent = contentFrame
+	})
+	
+	local tabSeparator = Create("Frame", {
+		Name = "TabSeparator",
+		Size = UDim2.new(0, 1, 1, -20),
+		Position = UDim2.new(1, 0, 0, 10),
+		BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+		BorderSizePixel = 0,
+		Parent = tabContainer
+	})
+	
+	local tabScroll = Create("ScrollingFrame", {
+		Name = "TabScroll",
+		Size = UDim2.new(1, -1, 1, 0),
+		BackgroundTransparency = 1,
+		ScrollBarThickness = 2,
+		ScrollBarImageColor3 = RiftUI.Theme.BackgroundTertiary,
+		CanvasSize = UDim2.new(0, 0, 0, 0),
+		Parent = tabContainer
+	})
+	
+	local tabList = Create("UIListLayout", {
+		Padding = UDim.new(0, 2),
+		Parent = tabScroll
+	})
+	
+	local tabPadding = Create("UIPadding", {
+		PaddingTop = UDim.new(0, 10),
+		PaddingLeft = UDim.new(0, 10),
+		PaddingRight = UDim.new(0, 10),
+		Parent = tabScroll
+	})
+	
+	local indicator = Create("Frame", {
+		Name = "Indicator",
+		Size = UDim2.new(0, 3, 0, 28),
+		Position = UDim2.new(0, 0, 0, 0),
+		BackgroundColor3 = RiftUI.Theme.Indicator,
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = tabScroll
+	})
+	SetCorner(indicator, UDim.new(0, 2))
+	
+	local pageContainer = Create("Frame", {
+		Name = "PageContainer",
+		Size = UDim2.new(1, -140, 1, 0),
+		Position = UDim2.new(0, 140, 0, 0),
+		BackgroundTransparency = 1,
+		Parent = contentFrame
+	})
+	
+	local profileFrame = Create("Frame", {
+		Name = "Profile",
+		Size = UDim2.new(0, size.X, 0, 60),
+		Position = UDim2.new(0.5, -size.X/2, 0.5, size.Y/2 + 10),
+		BackgroundColor3 = RiftUI.Theme.Background,
+		BorderSizePixel = 0,
+		Parent = screenGui
+	})
+	SetCorner(profileFrame, UDim.new(0, 8))
+	SetStroke(profileFrame, RiftUI.Theme.Stroke, 1)
+	SetShadow(profileFrame, 0.6)
+	
+	local avatarImage = Create("ImageLabel", {
+		Name = "Avatar",
+		Size = UDim2.new(0, 44, 0, 44),
+		Position = UDim2.new(0, 10, 0, 8),
+		BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+		Image = "",
+		Parent = profileFrame
+	})
+	SetCorner(avatarImage, UDim.new(0, 6))
+	
+	local usernameLabel = Create("TextLabel", {
+		Name = "Username",
+		Text = LocalPlayer.DisplayName,
+		Font = Enum.Font.GothamBold,
+		TextSize = 14,
+		TextColor3 = RiftUI.Theme.Text,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 200, 0, 20),
+		Position = UDim2.new(0, 64, 0, 12),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = profileFrame
+	})
+	
+	local displayLabel = Create("TextLabel", {
+		Name = "DisplayName",
+		Text = "@" .. LocalPlayer.Name,
+		Font = Enum.Font.Gotham,
+		TextSize = 12,
+		TextColor3 = RiftUI.Theme.TextSecondary,
+		BackgroundTransparency = 1,
+		Size = UDim2.new(0, 200, 0, 16),
+		Position = UDim2.new(0, 64, 0, 32),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = profileFrame
+	})
+	
+	local success, result = pcall(function()
+		local userId = LocalPlayer.UserId
+		local thumbType = Enum.ThumbnailType.HeadShot
+		local thumbSize = Enum.ThumbnailSize.Size420x420
+		local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+		return content
+	end)
+	
+	if success then
+		avatarImage.Image = result
+	end
+	
+	local draggableIcon = Create("TextButton", {
+		Name = "DraggableIcon",
+		Size = UDim2.new(0, 60, 0, 60),
+		Position = UDim2.new(0, 50, 0.5, -30),
+		BackgroundColor3 = RiftUI.Theme.Background,
+		Text = iconText,
+		Font = Enum.Font.GothamBold,
+		TextSize = 11,
+		TextColor3 = RiftUI.Theme.Text,
+		Visible = false,
+		Parent = screenGui
+	})
+	SetCorner(draggableIcon, UDim.new(1, 0))
+	SetStroke(draggableIcon, RiftUI.Theme.Stroke, 1)
+	SetShadow(draggableIcon, 0.5)
+	
+	MakeDraggable(draggableIcon)
+	
+	draggableIcon.MouseEnter:Connect(function()
+		Tween(draggableIcon, RiftUI.Animation.Fast, {Size = UDim2.new(0, 66, 0, 66)})
+	end)
+	
+	draggableIcon.MouseLeave:Connect(function()
+		Tween(draggableIcon, RiftUI.Animation.Fast, {Size = UDim2.new(0, 60, 0, 60)})
+	end)
+	
+	local windowOpen = true
+	local iconPosition = draggableIcon.Position
+	
+	local function OpenModal()
+		modalOverlay.Visible = true
+		Tween(modalOverlay, RiftUI.Animation.Normal, {BackgroundTransparency = 0.5})
+		Tween(modalFrame, RiftUI.Animation.Elastic, {BackgroundTransparency = 0})
+		modalTitle.TextTransparency = 1
+		modalText.TextTransparency = 1
+		confirmButton.BackgroundTransparency = 1
+		confirmButton.TextTransparency = 1
+		declineButton.BackgroundTransparency = 1
+		declineButton.TextTransparency = 1
+		
+		task.delay(0.1, function()
+			Tween(modalTitle, RiftUI.Animation.Fast, {TextTransparency = 0})
+			Tween(modalText, RiftUI.Animation.Fast, {TextTransparency = 0})
+			Tween(confirmButton, RiftUI.Animation.Fast, {BackgroundTransparency = 0, TextTransparency = 0})
+			Tween(declineButton, RiftUI.Animation.Fast, {BackgroundTransparency = 0, TextTransparency = 0})
+		end)
+	end
+	
+	local function CloseModal()
+		Tween(modalOverlay, RiftUI.Animation.Normal, {BackgroundTransparency = 1})
+		Tween(modalFrame, RiftUI.Animation.Normal, {BackgroundTransparency = 1})
+		Tween(modalTitle, RiftUI.Animation.Fast, {TextTransparency = 1})
+		Tween(modalText, RiftUI.Animation.Fast, {TextTransparency = 1})
+		Tween(confirmButton, RiftUI.Animation.Fast, {BackgroundTransparency = 1, TextTransparency = 1})
+		Tween(declineButton, RiftUI.Animation.Fast, {BackgroundTransparency = 1, TextTransparency = 1})
+		
+		task.delay(0.3, function()
+			modalOverlay.Visible = false
+		end)
+	end
+	
+	local function HideWindow()
+		windowOpen = false
+		iconPosition = draggableIcon.Position
+		Tween(mainFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+		Tween(profileFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)})
+		
+		task.delay(0.3, function()
+			mainFrame.Visible = false
+			profileFrame.Visible = false
+			draggableIcon.Visible = true
+			draggableIcon.Position = iconPosition
+			Tween(draggableIcon, RiftUI.Animation.Elastic, {Size = UDim2.new(0, 60, 0, 60)})
+		end)
+	end
+	
+	local function ShowWindow()
+		windowOpen = true
+		iconPosition = draggableIcon.Position
+		Tween(draggableIcon, RiftUI.Animation.Fast, {Size = UDim2.new(0, 0, 0, 0)})
+		
+		task.delay(0.15, function()
+			draggableIcon.Visible = false
+			mainFrame.Visible = true
+			profileFrame.Visible = true
+			mainFrame.Size = UDim2.new(0, 0, 0, 0)
+			mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+			Tween(mainFrame, RiftUI.Animation.Elastic, {Size = UDim2.new(0, size.X, 0, size.Y), Position = UDim2.new(0.5, -size.X/2, 0.5, -size.Y/2)})
+			Tween(profileFrame, RiftUI.Animation.Elastic, {Size = UDim2.new(0, size.X, 0, 60), Position = UDim2.new(0.5, -size.X/2, 0.5, size.Y/2 + 10)})
+		end)
+	end
+	
+	closeButton.MouseButton1Click:Connect(OpenModal)
+	
+	confirmButton.MouseButton1Click:Connect(function()
+		pingConnection:Disconnect()
+		screenGui:Destroy()
+	end)
+	
+	declineButton.MouseButton1Click:Connect(CloseModal)
+	
+	hideButton.MouseButton1Click:Connect(HideWindow)
+	
+	draggableIcon.MouseButton1Click:Connect(ShowWindow)
+	
+	MakeDraggable(mainFrame, header)
+	MakeDraggable(profileFrame)
+	
+	local window = {
+		ScreenGui = screenGui,
+		MainFrame = mainFrame,
+		ContentFrame = contentFrame,
+		TabContainer = tabContainer,
+		TabScroll = tabScroll,
+		PageContainer = pageContainer,
+		Indicator = indicator,
+		Tabs = {},
+		CurrentTab = nil
+	}
+	
+	function window:AddTab(tabName)
+		local tabButton = Create("TextButton", {
+			Name = tabName .. "Tab",
+			Text = tabName,
+			Font = Enum.Font.Gotham,
+			TextSize = 13,
+			TextColor3 = RiftUI.Theme.TextSecondary,
+			BackgroundColor3 = RiftUI.Theme.Background,
+			Size = UDim2.new(1, 0, 0, 32),
+			Parent = self.TabScroll
+		})
+		SetCorner(tabButton, UDim.new(0, 4))
+		
+		local tabPage = Create("ScrollingFrame", {
+			Name = tabName .. "Page",
+			Size = UDim2.new(1, 0, 1, 0),
+			BackgroundTransparency = 1,
+			ScrollBarThickness = 3,
+			ScrollBarImageColor3 = RiftUI.Theme.BackgroundTertiary,
+			CanvasSize = UDim2.new(0, 0, 0, 0),
+			Visible = false,
+			Parent = self.PageContainer
+		})
+		SetPadding(tabPage, 15)
+		
+		local pageList = Create("UIListLayout", {
+			Padding = UDim.new(0, 8),
+			Parent = tabPage
+		})
+		
+		pageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+			tabPage.CanvasSize = UDim2.new(0, 0, 0, pageList.AbsoluteContentSize.Y + 30)
+		end)
+		
+		local tab = {
+			Button = tabButton,
+			Page = tabPage,
+			Name = tabName,
+			Components = {}
+		}
+		
+		tabButton.MouseEnter:Connect(function()
+			if self.CurrentTab ~= tab then
+				Tween(tabButton, RiftUI.Animation.Fast, {TextColor3 = RiftUI.Theme.Text, BackgroundColor3 = RiftUI.Theme.BackgroundSecondary})
+			end
+		end)
+		
+		tabButton.MouseLeave:Connect(function()
+			if self.CurrentTab ~= tab then
+				Tween(tabButton, RiftUI.Animation.Fast, {TextColor3 = RiftUI.Theme.TextSecondary, BackgroundColor3 = RiftUI.Theme.Background})
+			end
+		end)
+		
+		tabButton.MouseButton1Click:Connect(function()
+			self:SelectTab(tab)
+		end)
+		
+		function tab:AddSeparator()
+			local separator = Create("Frame", {
+				Name = "Separator",
+				Size = UDim2.new(1, 0, 0, 1),
+				BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+				BorderSizePixel = 0,
+				Parent = self.Page
+			})
+			return separator
+		end
+		
+		function tab:AddLabel(text)
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 20),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = self.Page
+			})
+			return label
+		end
+		
+		function tab:AddParagraph(text)
+			local paragraph = Create("TextLabel", {
+				Name = "Paragraph",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 12,
+				TextColor3 = RiftUI.Theme.TextSecondary,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 0),
+				AutomaticSize = Enum.AutomaticSize.Y,
+				TextWrapped = true,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = self.Page
+			})
+			return paragraph
+		end
+		
+		function tab:AddButton(config)
+			config = config or {}
+			local text = config.text or "Button"
+			local callback = config.callback or function() end
+			
+			local buttonFrame = Create("Frame", {
+				Name = "Button",
+				Size = UDim2.new(1, 0, 0, 36),
+				BackgroundTransparency = 1,
+				Parent = self.Page
+			})
+			
+			local button = Create("TextButton", {
+				Name = "ButtonElement",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				Size = UDim2.new(1, 0, 1, 0),
+				Parent = buttonFrame
+			})
+			SetCorner(button, UDim.new(0, 6))
+			
+			local glow = Create("Frame", {
+				Name = "Glow",
+				Size = UDim2.new(1, 4, 1, 4),
+				Position = UDim2.new(0, -2, 0, -2),
+				BackgroundColor3 = accentColor,
+				BackgroundTransparency = 1,
+				BorderSizePixel = 0,
+				ZIndex = button.ZIndex - 1,
+				Parent = button
+			})
+			SetCorner(glow, UDim.new(0, 8))
+			
+			button.MouseEnter:Connect(function()
+				Tween(button, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary})
+				Tween(glow, RiftUI.Animation.Fast, {BackgroundTransparency = 0.8})
+			end)
+			
+			button.MouseLeave:Connect(function()
+				Tween(button, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundSecondary})
+				Tween(glow, RiftUI.Animation.Fast, {BackgroundTransparency = 1})
+			end)
+			
+			button.MouseButton1Down:Connect(function()
+				Tween(button, RiftUI.Animation.Fast, {Size = UDim2.new(0.98, 0, 0.94, 0), Position = UDim2.new(0.01, 0, 0.03, 0)})
+			end)
+			
+			button.MouseButton1Up:Connect(function()
+				Tween(button, RiftUI.Animation.Elastic, {Size = UDim2.new(1, 0, 1, 0), Position = UDim2.new(0, 0, 0, 0)})
+			end)
+			
+			button.MouseButton1Click:Connect(callback)
+			
+			return button
+		end
+		
+		function tab:AddToggle(config)
+			config = config or {}
+			local text = config.text or "Toggle"
+			local default = config.default or false
+			local callback = config.callback or function() end
+			
+			local toggleFrame = Create("Frame", {
+				Name = "Toggle",
+				Size = UDim2.new(1, 0, 0, 36),
+				BackgroundTransparency = 1,
+				Parent = self.Page
+			})
+			
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, -60, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = toggleFrame
+			})
+			
+			local switchBg = Create("Frame", {
+				Name = "SwitchBg",
+				Size = UDim2.new(0, 44, 0, 24),
+				Position = UDim2.new(1, -44, 0.5, -12),
+				BackgroundColor3 = default and RiftUI.Theme.Success or RiftUI.Theme.BackgroundTertiary,
+				BorderSizePixel = 0,
+				Parent = toggleFrame
+			})
+			SetCorner(switchBg, UDim.new(1, 0))
+			
+			local switchHandle = Create("Frame", {
+				Name = "Handle",
+				Size = UDim2.new(0, 18, 0, 18),
+				Position = default and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9),
+				BackgroundColor3 = RiftUI.Theme.Text,
+				BorderSizePixel = 0,
+				Parent = switchBg
+			})
+			SetCorner(switchHandle, UDim.new(1, 0))
+			
+			local enabled = default
+			
+			local function UpdateToggle()
+				enabled = not enabled
+				Tween(switchBg, RiftUI.Animation.Smooth, {BackgroundColor3 = enabled and RiftUI.Theme.Success or RiftUI.Theme.BackgroundTertiary})
+				Tween(switchHandle, RiftUI.Animation.Smooth, {Position = enabled and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)})
+				callback(enabled)
+			end
+			
+			switchBg.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					UpdateToggle()
+				end
+			end)
+			
+			return {
+				Set = function(value)
+					enabled = value
+					Tween(switchBg, RiftUI.Animation.Smooth, {BackgroundColor3 = enabled and RiftUI.Theme.Success or RiftUI.Theme.BackgroundTertiary})
+					Tween(switchHandle, RiftUI.Animation.Smooth, {Position = enabled and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)})
+					callback(enabled)
+				end,
+				Get = function()
+					return enabled
+				end
+			}
+		end
+		
+		function tab:AddSlider(config)
+			config = config or {}
+			local text = config.text or "Slider"
+			local min = config.min or 0
+			local max = config.max or 100
+			local default = config.default or min
+			local callback = config.callback or function() end
+			
+			local sliderFrame = Create("Frame", {
+				Name = "Slider",
+				Size = UDim2.new(1, 0, 0, 50),
+				BackgroundTransparency = 1,
+				Parent = self.Page
+			})
+			
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0.7, 0, 0, 20),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = sliderFrame
+			})
+			
+			local valueLabel = Create("TextLabel", {
+				Name = "Value",
+				Text = tostring(default),
+				Font = Enum.Font.Gotham,
+				TextSize = 12,
+				TextColor3 = RiftUI.Theme.TextSecondary,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0.3, 0, 0, 20),
+				Position = UDim2.new(0.7, 0, 0, 0),
+				TextXAlignment = Enum.TextXAlignment.Right,
+				Parent = sliderFrame
+			})
+			
+			local track = Create("Frame", {
+				Name = "Track",
+				Size = UDim2.new(1, 0, 0, 4),
+				Position = UDim2.new(0, 0, 0, 35),
+				BackgroundColor3 = RiftUI.Theme.BackgroundTertiary,
+				BorderSizePixel = 0,
+				Parent = sliderFrame
+			})
+			SetCorner(track, UDim.new(1, 0))
+			
+			local fill = Create("Frame", {
+				Name = "Fill",
+				Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
+				BackgroundColor3 = accentColor,
+				BorderSizePixel = 0,
+				Parent = track
+			})
+			SetCorner(fill, UDim.new(1, 0))
+			
+			local handle = Create("Frame", {
+				Name = "Handle",
+				Size = UDim2.new(0, 14, 0, 14),
+				Position = UDim2.new((default - min) / (max - min), -7, 0.5, -7),
+				BackgroundColor3 = RiftUI.Theme.Text,
+				BorderSizePixel = 0,
+				Parent = track
+			})
+			SetCorner(handle, UDim.new(1, 0))
+			
+			local dragging = false
+			
+			local function UpdateSlider(input)
+				local pos = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+				local value = math.floor(min + (max - min) * pos)
+				valueLabel.Text = tostring(value)
+				Tween(fill, RiftUI.Animation.Fast, {Size = UDim2.new(pos, 0, 1, 0)})
+				Tween(handle, RiftUI.Animation.Fast, {Position = UDim2.new(pos, -7, 0.5, -7)})
+				callback(value)
+			end
+			
+			track.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					dragging = true
+					UpdateSlider(input)
+				end
+			end)
+			
+			track.InputChanged:Connect(function(input)
+				if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+					UpdateSlider(input)
+				end
+			end)
+			
+			UserInputService.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					dragging = false
+				end
+			end)
+			
+			return {
+				Set = function(value)
+					local clamped = math.clamp(value, min, max)
+					local pos = (clamped - min) / (max - min)
+					valueLabel.Text = tostring(clamped)
+					Tween(fill, RiftUI.Animation.Smooth, {Size = UDim2.new(pos, 0, 1, 0)})
+					Tween(handle, RiftUI.Animation.Smooth, {Position = UDim2.new(pos, -7, 0.5, -7)})
+					callback(clamped)
+				end,
+				Get = function()
+					return tonumber(valueLabel.Text)
+				end
+			}
+		end
+		
+		function tab:AddDropdown(config)
+			config = config or {}
+			local text = config.text or "Dropdown"
+			local options = config.options or {}
+			local default = config.default
+			local callback = config.callback or function() end
+			
+			local dropdownFrame = Create("Frame", {
+				Name = "Dropdown",
+				Size = UDim2.new(1, 0, 0, 36),
+				BackgroundTransparency = 1,
+				ClipsDescendants = true,
+				Parent = self.Page
+			})
+			
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 20),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = dropdownFrame
+			})
+			
+			local dropdownBox = Create("TextButton", {
+				Name = "DropdownBox",
+				Text = default or "Select...",
+				Font = Enum.Font.Gotham,
+				TextSize = 12,
+				TextColor3 = RiftUI.Theme.TextSecondary,
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				Size = UDim2.new(1, 0, 0, 32),
+				Position = UDim2.new(0, 0, 0, 22),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = dropdownFrame
+			})
+			SetPadding(dropdownBox, 10)
+			SetCorner(dropdownBox, UDim.new(0, 6))
+			
+			local arrow = Create("TextLabel", {
+				Name = "Arrow",
+				Text = "V",
+				Font = Enum.Font.GothamBold,
+				TextSize = 10,
+				TextColor3 = RiftUI.Theme.TextSecondary,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0, 20, 1, 0),
+				Position = UDim2.new(1, -25, 0, 0),
+				Parent = dropdownBox
+			})
+			
+			local listFrame = Create("Frame", {
+				Name = "ListFrame",
+				Size = UDim2.new(1, 0, 0, 0),
+				Position = UDim2.new(0, 0, 0, 58),
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				BorderSizePixel = 0,
+				ClipsDescendants = true,
+				Visible = false,
+				Parent = dropdownFrame
+			})
+			SetCorner(listFrame, UDim.new(0, 6))
+			SetStroke(listFrame, RiftUI.Theme.Stroke, 1)
+			
+			local searchBox = Create("TextBox", {
+				Name = "SearchBox",
+				PlaceholderText = "Search...",
+				Text = "",
+				Font = Enum.Font.Gotham,
+				TextSize = 12,
+				TextColor3 = RiftUI.Theme.Text,
+				PlaceholderColor3 = RiftUI.Theme.TextDark,
+				BackgroundColor3 = RiftUI.Theme.Background,
+				Size = UDim2.new(1, -16, 0, 28),
+				Position = UDim2.new(0, 8, 0, 8),
+				Parent = listFrame
+			})
+			SetCorner(searchBox, UDim.new(0, 4))
+			SetPadding(searchBox, 8)
+			
+			local optionsScroll = Create("ScrollingFrame", {
+				Name = "OptionsScroll",
+				Size = UDim2.new(1, -16, 1, -44),
+				Position = UDim2.new(0, 8, 0, 40),
+				BackgroundTransparency = 1,
+				ScrollBarThickness = 3,
+				ScrollBarImageColor3 = RiftUI.Theme.BackgroundTertiary,
+				CanvasSize = UDim2.new(0, 0, 0, 0),
+				Parent = listFrame
+			})
+			
+			local optionsList = Create("UIListLayout", {
+				Padding = UDim.new(0, 2),
+				Parent = optionsScroll
+			})
+			
+			local optionButtons = {}
+			local expanded = false
+			
+			local function UpdateOptions(filter)
+				for _, btn in ipairs(optionButtons) do
+					btn:Destroy()
+				end
+				optionButtons = {}
+				
+				for _, option in ipairs(options) do
+					if not filter or string.find(string.lower(option), string.lower(filter), 1, true) then
+						local optionBtn = Create("TextButton", {
+							Name = option,
+							Text = option,
+							Font = Enum.Font.Gotham,
+							TextSize = 12,
+							TextColor3 = RiftUI.Theme.TextSecondary,
+							BackgroundColor3 = RiftUI.Theme.Background,
+							Size = UDim2.new(1, 0, 0, 28),
+							Parent = optionsScroll
+						})
+						SetCorner(optionBtn, UDim.new(0, 4))
+						
+						optionBtn.MouseEnter:Connect(function()
+							Tween(optionBtn, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary, TextColor3 = RiftUI.Theme.Text})
+						end)
+						
+						optionBtn.MouseLeave:Connect(function()
+							Tween(optionBtn, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.Background, TextColor3 = RiftUI.Theme.TextSecondary})
+						end)
+						
+						optionBtn.MouseButton1Click:Connect(function()
+							dropdownBox.Text = option
+							callback(option)
+							expanded = false
+							Tween(listFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(1, 0, 0, 0)})
+							Tween(arrow, RiftUI.Animation.Fast, {Rotation = 0})
+							task.delay(0.3, function()
+								listFrame.Visible = false
+								dropdownFrame.Size = UDim2.new(1, 0, 0, 36)
+							end)
+						end)
+						
+						table.insert(optionButtons, optionBtn)
+					end
+				end
+				
+				optionsScroll.CanvasSize = UDim2.new(0, 0, 0, math.min(#optionButtons * 30, 150))
+			end
+			
+			UpdateOptions()
+			
+			searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+				UpdateOptions(searchBox.Text)
+			end)
+			
+			dropdownBox.MouseButton1Click:Connect(function()
+				expanded = not expanded
+				if expanded then
+					listFrame.Visible = true
+					dropdownFrame.Size = UDim2.new(1, 0, 0, 200)
+					Tween(listFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(1, 0, 0, 140)})
+					Tween(arrow, RiftUI.Animation.Fast, {Rotation = 180})
+				else
+					Tween(listFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(1, 0, 0, 0)})
+					Tween(arrow, RiftUI.Animation.Fast, {Rotation = 0})
+					task.delay(0.3, function()
+						listFrame.Visible = false
+						dropdownFrame.Size = UDim2.new(1, 0, 0, 36)
+					end)
+				end
+			end)
+			
+			dropdownBox.MouseEnter:Connect(function()
+				Tween(dropdownBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary})
+			end)
+			
+			dropdownBox.MouseLeave:Connect(function()
+				Tween(dropdownBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundSecondary})
+			end)
+			
+			return {
+				Set = function(value)
+					dropdownBox.Text = value
+					callback(value)
+				end,
+				Get = function()
+					return dropdownBox.Text
+				end,
+				Refresh = function(newOptions)
+					options = newOptions
+					UpdateOptions()
+				end
+			}
+		end
+		
+		function tab:AddInput(config)
+			config = config or {}
+			local text = config.text or "Input"
+			local placeholder = config.placeholder or "Enter text..."
+			local default = config.default or ""
+			local callback = config.callback or function() end
+			
+			local inputFrame = Create("Frame", {
+				Name = "Input",
+				Size = UDim2.new(1, 0, 0, 60),
+				BackgroundTransparency = 1,
+				Parent = self.Page
+			})
+			
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, 0, 0, 20),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = inputFrame
+			})
+			
+			local textBox = Create("TextBox", {
+				Name = "TextBox",
+				PlaceholderText = placeholder,
+				Text = default,
+				Font = Enum.Font.Code,
+				TextSize = 12,
+				TextColor3 = RiftUI.Theme.Text,
+				PlaceholderColor3 = RiftUI.Theme.TextDark,
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				Size = UDim2.new(1, 0, 0, 32),
+				Position = UDim2.new(0, 0, 0, 24),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				ClearTextOnFocus = false,
+				Parent = inputFrame
+			})
+			SetPadding(textBox, 10)
+			SetCorner(textBox, UDim.new(0, 6))
+			
+			local cursor = Create("Frame", {
+				Name = "Cursor",
+				Size = UDim2.new(0, 2, 0, 16),
+				Position = UDim2.new(0, 12 + TextService:GetTextSize(default, 12, Enum.Font.Code, Vector2.new(9999, 9999)).X, 0, 8),
+				BackgroundColor3 = accentColor,
+				BorderSizePixel = 0,
+				Visible = false,
+				Parent = textBox
+			})
+			
+			local cursorTween = TweenService:Create(cursor, TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1, true), {BackgroundTransparency = 1})
+			
+			textBox.Focused:Connect(function()
+				Tween(textBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary})
+				cursor.Visible = true
+				cursorTween:Play()
+			end)
+			
+			textBox.FocusLost:Connect(function()
+				Tween(textBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundSecondary})
+				cursor.Visible = false
+				cursorTween:Cancel()
+				callback(textBox.Text)
+			end)
+			
+			textBox:GetPropertyChangedSignal("Text"):Connect(function()
+				local textSize = TextService:GetTextSize(textBox.Text, 12, Enum.Font.Code, Vector2.new(9999, 9999))
+				cursor.Position = UDim2.new(0, 12 + textSize.X, 0, 8)
+			end)
+			
+			return {
+				Set = function(value)
+					textBox.Text = value
+					callback(value)
+				end,
+				Get = function()
+					return textBox.Text
+				end
+			}
+		end
+		
+		function tab:AddKeybind(config)
+			config = config or {}
+			local text = config.text or "Keybind"
+			local default = config.default or Enum.KeyCode.Unknown
+			local callback = config.callback or function() end
+			
+			local keybindFrame = Create("Frame", {
+				Name = "Keybind",
+				Size = UDim2.new(1, 0, 0, 36),
+				BackgroundTransparency = 1,
+				Parent = self.Page
+			})
+			
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, -80, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = keybindFrame
+			})
+			
+			local keyBox = Create("TextButton", {
+				Name = "KeyBox",
+				Text = default ~= Enum.KeyCode.Unknown and default.Name or "None",
+				Font = Enum.Font.GothamBold,
+				TextSize = 11,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				Size = UDim2.new(0, 70, 0, 28),
+				Position = UDim2.new(1, -70, 0.5, -14),
+				Parent = keybindFrame
+			})
+			SetCorner(keyBox, UDim.new(0, 6))
+			
+			local currentKey = default
+			local listening = false
+			
+			keyBox.MouseButton1Click:Connect(function()
+				if listening then return end
+				listening = true
+				keyBox.Text = "..."
+				Tween(keyBox, RiftUI.Animation.Fast, {BackgroundColor3 = accentColor, TextColor3 = RiftUI.Theme.Background})
+				
+				local connection
+				connection = UserInputService.InputBegan:Connect(function(input)
+					if input.UserInputType == Enum.UserInputType.Keyboard then
+						if input.KeyCode ~= Enum.KeyCode.Escape then
+							currentKey = input.KeyCode
+							keyBox.Text = input.KeyCode.Name
+							callback(input.KeyCode)
+						else
+							keyBox.Text = currentKey ~= Enum.KeyCode.Unknown and currentKey.Name or "None"
+						end
+						listening = false
+						Tween(keyBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundSecondary, TextColor3 = RiftUI.Theme.Text})
+						connection:Disconnect()
+					end
+				end)
+			end)
+			
+			keyBox.MouseEnter:Connect(function()
+				if not listening then
+					Tween(keyBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundTertiary})
+				end
+			end)
+			
+			keyBox.MouseLeave:Connect(function()
+				if not listening then
+					Tween(keyBox, RiftUI.Animation.Fast, {BackgroundColor3 = RiftUI.Theme.BackgroundSecondary})
+				end
+			end)
+			
+			return {
+				Set = function(keyCode)
+					currentKey = keyCode
+					keyBox.Text = keyCode ~= Enum.KeyCode.Unknown and keyCode.Name or "None"
+					callback(keyCode)
+				end,
+				Get = function()
+					return currentKey
+				end
+			}
+		end
+		
+		function tab:AddColorPicker(config)
+			config = config or {}
+			local text = config.text or "Color Picker"
+			local default = config.default or Color3.fromRGB(255, 255, 255)
+			local callback = config.callback or function() end
+			
+			local colorFrame = Create("Frame", {
+				Name = "ColorPicker",
+				Size = UDim2.new(1, 0, 0, 40),
+				BackgroundTransparency = 1,
+				Parent = self.Page
+			})
+			
+			local label = Create("TextLabel", {
+				Name = "Label",
+				Text = text,
+				Font = Enum.Font.Gotham,
+				TextSize = 13,
+				TextColor3 = RiftUI.Theme.Text,
+				BackgroundTransparency = 1,
+				Size = UDim2.new(1, -50, 1, 0),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				Parent = colorFrame
+			})
+			
+			local preview = Create("TextButton", {
+				Name = "Preview",
+				Text = "",
+				BackgroundColor3 = default,
+				Size = UDim2.new(0, 36, 0, 28),
+				Position = UDim2.new(1, -36, 0.5, -14),
+				Parent = colorFrame
+			})
+			SetCorner(preview, UDim.new(0, 6))
+			SetStroke(preview, RiftUI.Theme.Stroke, 1)
+			
+			local pickerFrame = Create("Frame", {
+				Name = "PickerFrame",
+				Size = UDim2.new(1, 0, 0, 0),
+				Position = UDim2.new(0, 0, 0, 42),
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				BorderSizePixel = 0,
+				ClipsDescendants = true,
+				Visible = false,
+				Parent = colorFrame
+			})
+			SetCorner(pickerFrame, UDim.new(0, 6))
+			SetStroke(pickerFrame, RiftUI.Theme.Stroke, 1)
+			
+			local saturationFrame = Create("Frame", {
+				Name = "Saturation",
+				Size = UDim2.new(1, -20, 0, 100),
+				Position = UDim2.new(0, 10, 0, 10),
+				BackgroundColor3 = Color3.fromRGB(255, 0, 0),
+				BorderSizePixel = 0,
+				Parent = pickerFrame
+			})
+			SetCorner(saturationFrame, UDim.new(0, 4))
+			
+			local saturationGradient = Create("UIGradient", {
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 255)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+				}),
+				Parent = saturationFrame
+			})
+			
+			local darknessFrame = Create("Frame", {
+				Name = "Darkness",
+				Size = UDim2.new(1, 0, 1, 0),
+				BackgroundTransparency = 0,
+				BorderSizePixel = 0,
+				Parent = saturationFrame
+			})
+			SetCorner(darknessFrame, UDim.new(0, 4))
+			
+			local darknessGradient = Create("UIGradient", {
+				Rotation = 90,
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
+				}),
+				Transparency = NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0),
+					NumberSequenceKeypoint.new(1, 1)
+				}),
+				Parent = darknessFrame
+			})
+			
+			local selector = Create("Frame", {
+				Name = "Selector",
+				Size = UDim2.new(0, 12, 0, 12),
+				BackgroundColor3 = RiftUI.Theme.Text,
+				BorderSizePixel = 0,
+				Position = UDim2.new(0.5, -6, 0.5, -6),
+				Parent = saturationFrame
+			})
+			SetCorner(selector, UDim.new(1, 0))
+			SetStroke(selector, Color3.fromRGB(0, 0, 0), 2)
+			
+			local hueSlider = Create("Frame", {
+				Name = "HueSlider",
+				Size = UDim2.new(1, -20, 0, 16),
+				Position = UDim2.new(0, 10, 0, 118),
+				BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+				BorderSizePixel = 0,
+				Parent = pickerFrame
+			})
+			SetCorner(hueSlider, UDim.new(0, 4))
+			
+			local hueGradient = Create("UIGradient", {
+				Color = ColorSequence.new({
+					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+					ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+					ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+					ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+					ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+					ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+					ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0))
+				}),
+				Parent = hueSlider
+			})
+			
+			local hueHandle = Create("Frame", {
+				Name = "HueHandle",
+				Size = UDim2.new(0, 8, 1, 4),
+				Position = UDim2.new(0, -4, 0, -2),
+				BackgroundColor3 = RiftUI.Theme.Text,
+				BorderSizePixel = 0,
+				Parent = hueSlider
+			})
+			SetCorner(hueHandle, UDim.new(0, 2))
+			
+			local expanded = false
+			local hue = 0
+			local saturation = 1
+			local value = 1
+			
+			local function UpdateColor()
+				local color = Color3.fromHSV(hue, saturation, value)
+				preview.BackgroundColor3 = color
+				saturationFrame.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
+				callback(color)
+			end
+			
+			local function HandleSaturationInput(input)
+				local pos = Vector2.new(
+					math.clamp((input.Position.X - saturationFrame.AbsolutePosition.X) / saturationFrame.AbsoluteSize.X, 0, 1),
+					math.clamp((input.Position.Y - saturationFrame.AbsolutePosition.Y) / saturationFrame.AbsoluteSize.Y, 0, 1)
+				)
+				saturation = pos.X
+				value = 1 - pos.Y
+				Tween(selector, RiftUI.Animation.Fast, {Position = UDim2.new(pos.X, -6, pos.Y, -6)})
+				UpdateColor()
+			end
+			
+			local function HandleHueInput(input)
+				local pos = math.clamp((input.Position.X - hueSlider.AbsolutePosition.X) / hueSlider.AbsoluteSize.X, 0, 1)
+				hue = pos
+				Tween(hueHandle, RiftUI.Animation.Fast, {Position = UDim2.new(pos, -4, 0, -2)})
+				UpdateColor()
+			end
+			
+			local draggingSat = false
+			local draggingHue = false
+			
+			saturationFrame.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					draggingSat = true
+					HandleSaturationInput(input)
+				end
+			end)
+			
+			saturationFrame.InputChanged:Connect(function(input)
+				if draggingSat and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+					HandleSaturationInput(input)
+				end
+			end)
+			
+			hueSlider.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					draggingHue = true
+					HandleHueInput(input)
+				end
+			end)
+			
+			hueSlider.InputChanged:Connect(function(input)
+				if draggingHue and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+					HandleHueInput(input)
+				end
+			end)
+			
+			UserInputService.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					draggingSat = false
+					draggingHue = false
+				end
+			end)
+			
+			preview.MouseButton1Click:Connect(function()
+				expanded = not expanded
+				if expanded then
+					pickerFrame.Visible = true
+					colorFrame.Size = UDim2.new(1, 0, 0, 190)
+					Tween(pickerFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(1, 0, 0, 150)})
+				else
+					Tween(pickerFrame, RiftUI.Animation.Smooth, {Size = UDim2.new(1, 0, 0, 0)})
+					task.delay(0.3, function()
+						pickerFrame.Visible = false
+						colorFrame.Size = UDim2.new(1, 0, 0, 40)
+					end)
+				end
+			end)
+			
+			return {
+				Set = function(color)
+					local h, s, v = color:ToHSV()
+					hue, saturation, value = h, s, v
+					preview.BackgroundColor3 = color
+					saturationFrame.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+					Tween(selector, RiftUI.Animation.Fast, {Position = UDim2.new(s, -6, 1 - v, -6)})
+					Tween(hueHandle, RiftUI.Animation.Fast, {Position = UDim2.new(h, -4, 0, -2)})
+					callback(color)
+				end,
+				Get = function()
+					return preview.BackgroundColor3
+				end
+			}
+		end
+		
+		function tab:AddImage(config)
+			config = config or {}
+			local imageId = config.image or ""
+			local size = config.size or UDim2.new(1, 0, 0, 150)
+			local callback = config.callback or function() end
+			
+			local imageFrame = Create("Frame", {
+				Name = "Image",
+				Size = size,
+				BackgroundColor3 = RiftUI.Theme.BackgroundSecondary,
+				BorderSizePixel = 0,
+				Parent = self.Page
+			})
+			SetCorner(imageFrame, UDim.new(0, 8))
+			
+			local imageLabel = Create("ImageLabel", {
+				Name = "ImageLabel",
+				Size = UDim2.new(1, -8, 1, -8),
+				Position = UDim2.new(0, 4, 0, 4),
+				BackgroundTransparency = 1,
+				Image = imageId,
+				ScaleType = Enum.ScaleType.Fit,
+				Parent = imageFrame
+			})
+			SetCorner(imageLabel, UDim.new(0, 6))
+			
+			imageFrame.InputBegan:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					Tween(imageFrame, RiftUI.Animation.Fast, {Size = UDim2.new(size.X.Scale, size.X.Offset - 4, size.Y.Scale, size.Y.Offset - 4), Position = UDim2.new(0, 2, 0, 2)})
+				end
+			end)
+			
+			imageFrame.InputEnded:Connect(function(input)
+				if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+					Tween(imageFrame, RiftUI.Animation.Elastic, {Size = size, Position = UDim2.new(0, 0, 0, 0)})
+					callback()
+				end
+			end)
+			
+			return {
+				Set = function(newImageId)
+					imageLabel.Image = newImageId
+				end,
+				Get = function()
+					return imageLabel.Image
+				end
+			}
+		end
+		
+		table.insert(self.Tabs, tab)
+		self.TabScroll.CanvasSize = UDim2.new(0, 0, 0, #self.Tabs * 34 + 20)
+		
+		return tab
+	end
+	
+	function window:SelectTab(tab)
+		if self.CurrentTab == tab then return end
+		
+		if self.CurrentTab then
+			Tween(self.CurrentTab.Button, RiftUI.Animation.Fast, {TextColor3 = RiftUI.Theme.TextSecondary, BackgroundColor3 = RiftUI.Theme.Background})
+			self.CurrentTab.Page.Visible = false
+		end
+		
+		self.CurrentTab = tab
+		Tween(tab.Button, RiftUI.Animation.Fast, {TextColor3 = RiftUI.Theme.Text, BackgroundColor3 = RiftUI.Theme.BackgroundSecondary})
+		
+		self.Indicator.Visible = true
+		Tween(self.Indicator, RiftUI.Animation.Smooth, {Position = UDim2.new(0, 0, 0, tab.Button.AbsolutePosition.Y - self.TabScroll.AbsolutePosition.Y + self.TabScroll.CanvasPosition.Y)})
+		
+		tab.Page.Visible = true
+		tab.Page.Position = UDim2.new(0, 20, 0, 0)
+		tab.Page.BackgroundTransparency = 1
+		Tween(tab.Page, RiftUI.Animation.Smooth, {Position = UDim2.new(0, 0, 0, 0)})
+	end
+	
+	function window:Notify(config)
+		config = config or {}
+		local title = config.title or "Notification"
+		local text = config.text or ""
+		local icon = config.icon or ""
+		local duration = config.duration or 3
+		local position = config.position or "top-right"
+		
+		local notificationGui = Create("ScreenGui", {
+			Name = "RiftNotification",
+			Parent = PlayerGui,
+			ResetOnSpawn = false,
+			ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		})
+		
+		local notificationFrame = Create("Frame", {
+			Name = "Notification",
+			Size = UDim2.new(0, 280, 0, 80),
+			BackgroundColor3 = RiftUI.Theme.Background,
+			BorderSizePixel = 0,
+			Position = position == "top-right" and UDim2.new(1, 300, 0, 20) or
+			           position == "top-left" and UDim2.new(0, -300, 0, 20) or
+			           position == "bottom-right" and UDim2.new(1, 300, 1, -100) or
+			           UDim2.new(0, -300, 1, -100),
+			Parent = notificationGui
+		})
+		SetCorner(notificationFrame, UDim.new(0, 8))
+		SetStroke(notificationFrame, RiftUI.Theme.Stroke, 1)
+		SetShadow(notificationFrame, 0.6)
+		
+		local iconLabel = Create("ImageLabel", {
+			Name = "Icon",
+			Size = UDim2.new(0, 40, 0, 40),
+			Position = UDim2.new(0, 15, 0, 20),
+			BackgroundTransparency = 1,
+			Image = icon,
+			Parent = notificationFrame
+		})
+		
+		local titleLabel = Create("TextLabel", {
+			Name = "Title",
+			Text = title,
+			Font = Enum.Font.GothamBold,
+			TextSize = 14,
+			TextColor3 = RiftUI.Theme.Text,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, -75, 0, 20),
+			Position = UDim2.new(0, 65, 0, 15),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Parent = notificationFrame
+		})
+		
+		local textLabel = Create("TextLabel", {
+			Name = "Text",
+			Text = text,
+			Font = Enum.Font.Gotham,
+			TextSize = 12,
+			TextColor3 = RiftUI.Theme.TextSecondary,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, -75, 0, 40),
+			Position = UDim2.new(0, 65, 0, 35),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Parent = notificationFrame
+		})
+		
+		local closeBtn = Create("TextButton", {
+			Name = "Close",
+			Text = "X",
+			Font = Enum.Font.GothamBold,
+			TextSize = 12,
+			TextColor3 = RiftUI.Theme.TextSecondary,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(0, 24, 0, 24),
+			Position = UDim2.new(1, -28, 0, 8),
+			Parent = notificationFrame
+		})
+		
+		closeBtn.MouseEnter:Connect(function()
+			Tween(closeBtn, RiftUI.Animation.Fast, {TextColor3 = RiftUI.Theme.Error})
+		end)
+		
+		closeBtn.MouseLeave:Connect(function()
+			Tween(closeBtn, RiftUI.Animation.Fast, {TextColor3 = RiftUI.Theme.TextSecondary})
+		end)
+		
+		local function CloseNotification()
+			Tween(notificationFrame, RiftUI.Animation.Smooth, {Position = position:find("right") and UDim2.new(1, 300, notificationFrame.Position.Y.Scale, notificationFrame.Position.Y.Offset) or UDim2.new(0, -300, notificationFrame.Position.Y.Scale, notificationFrame.Position.Y.Offset)})
+			task.delay(0.35, function()
+				notificationGui:Destroy()
+			end)
+		end
+		
+		closeBtn.MouseButton1Click:Connect(CloseNotification)
+		
+		Tween(notificationFrame, RiftUI.Animation.Elastic, {Position = position:find("right") and UDim2.new(1, -300, notificationFrame.Position.Y.Scale, notificationFrame.Position.Y.Offset) or UDim2.new(0, 20, notificationFrame.Position.Y.Scale, notificationFrame.Position.Y.Offset)})
+		
+		if duration > 0 then
+			task.delay(duration, CloseNotification)
+		end
+	end
+	
+	Tween(mainFrame, RiftUI.Animation.Elastic, {Size = UDim2.new(0, size.X, 0, size.Y), Position = UDim2.new(0.5, -size.X/2, 0.5, -size.Y/2)})
+	
+	return window
+end
+
+return RiftUI
